@@ -1,13 +1,27 @@
+export type QuizType = "mcq" | "true_false" | "fill_blank";
+
 export type QuizOption = {
-  id: string; // unique ID for the option
-  text?: string; // option text (optional, because could be audio/image later)
-  audioUrl?: string; // optional audio
-  imageUrl?: string; // optional image
+  id: string;
+  text?: string;
+  audioUrl?: string;
+  imageUrl?: string;
 };
 
 export type QuizQuestion = {
-  id: string; // unique ID for the question
-  prompt: string; // the question text
-  options: QuizOption[]; // list of possible answers
-  correctOptionId: string; // which option is correct
+  id: string;
+  promptText?: string;
+  promptAudio?: string;
+  promptImage?: string;
+  options?: QuizOption[]; // for MCQ
+  correctOptionId?: string; // for MCQ
+  expectedAnswer?: string; // for fill-in
+};
+
+export type Quiz = {
+  id: string; // unique id
+  slug?: string; // optional friendly slug
+  title: string;
+  description?: string;
+  type: QuizType;
+  questions: QuizQuestion[];
 };
