@@ -4,18 +4,22 @@ import QuizCard from "./QuizCard";
 export default function QuizGroup({
   groupName,
   items,
+  headerColor,
 }: {
   groupName: string;
   items: Quiz[];
+  headerColor: string;
 }) {
   return (
-    <section className="mb-8">
-      <h2 className="text-xl font-bold mb-4 text-[var(--primary)]">
+    <section className="mb-12">
+      <h2 className="text-xl font-semibold text-[var(--primary)] mb-4 flex items-center">
         {groupName}
+        <span className="flex-grow ml-4 border-t border-[var(--muted)]"></span>
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((q) => (
-          <QuizCard key={q.id} quiz={q} />
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((quiz) => (
+          <QuizCard key={quiz.id} quiz={quiz} headerColor={headerColor} />
         ))}
       </div>
     </section>
