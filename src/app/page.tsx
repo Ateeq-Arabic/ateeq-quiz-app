@@ -1,30 +1,25 @@
 import { quizzes } from "@/features/quiz/quizzes";
 import QuizGroup from "@/components/QuizGroup";
+import { getGroupColor } from "@/features/quiz/colors";
 
-const ORDER: Array<[string, string]> = [
-  ["mcq", "Multiple Choice (MCQ)"],
-  ["true_false", "True / False"],
-  ["fill_blank", "Fill in the Blank"],
-];
-
-const COLORS = {
-  mcq: "bg-[var(--card-header1)]",
-  true_false: "bg-[var(--card-header2)]",
-  fill_blank: "bg-[var(--card-header3)]",
-};
-
-function groupByType(list: typeof quizzes) {
+// Group quizzes by their "group" attribute
+function groupByGroup(list: typeof quizzes) {
   const map = new Map<string, typeof quizzes>();
   for (const q of list) {
-    const arr = map.get(q.type) ?? [];
+    const key = q.group ?? "Other";
+    const arr = map.get(key) ?? [];
     arr.push(q);
-    map.set(q.type, arr);
+    map.set(key, arr);
   }
   return map;
 }
 
 export default function Home() {
-  const grouped = groupByType(quizzes);
+  const grouped = groupByGroup(quizzes);
+
+  // Convert map to array so we can assign colors consistently
+  const groupEntries = Array.from(grouped.entries());
+
   return (
     <main className="min-h-screen px-4 bg-[var(--background)]">
       <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-md p-6">
@@ -38,15 +33,14 @@ export default function Home() {
 
         {/* Quiz Groups */}
         <div>
-          {ORDER.map(([typeKey, label]) => {
-            const items = grouped.get(typeKey) ?? [];
-            if (items.length === 0) return null;
+          {groupEntries.map(([groupName, items]) => {
+            const headerColor = getGroupColor(groupName);
             return (
               <QuizGroup
-                key={typeKey}
-                groupName={label}
+                key={groupName}
+                groupName={groupName}
                 items={items}
-                headerColor={COLORS[typeKey as keyof typeof COLORS]}
+                headerColor={headerColor}
               />
             );
           })}
