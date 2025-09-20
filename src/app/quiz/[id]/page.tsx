@@ -1,9 +1,7 @@
+// src/app/quiz/[id]/page.tsx  (server component)
 import { quizzes } from "@/features/quiz/quizzes";
 import type { Quiz } from "@/features/quiz/types";
-import MCQQuestion from "@/components/questions/MCQQuestion";
-import TrueFalseQuestion from "@/components/questions/TrueFalseQuestion";
-import FillBlankQuestion from "@/components/questions/FillBlankQuestion";
-import { getGroupColor } from "@/features/quiz/colors";
+import QuizPlayer from "@/components/QuizPlayer";
 
 export default async function QuizPage({
   params,
@@ -11,7 +9,6 @@ export default async function QuizPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
   const quiz: Quiz | undefined = quizzes.find(
     (q) => q.id === id || q.slug === id
   );
@@ -24,12 +21,10 @@ export default async function QuizPage({
     );
   }
 
-  const headerColor = getGroupColor(quiz.group || "Other");
-
+  // header UI (server) — keep this, player is client
   return (
     <main className="min-h-screen px-4 py-10 bg-[var(--background)]">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-8">
-        {/* Quiz Header */}
         <header className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-[var(--primary)]">
             {quiz.title}
@@ -41,32 +36,8 @@ export default async function QuizPage({
           )}
         </header>
 
-        {/* Questions */}
-        <div className="space-y-8">
-          {quiz.questions.map((q, idx) => {
-            const qType = (q.qType ?? quiz.type) as string; // prefer question type, fallback to quiz type
-            return (
-              <article
-                key={q.id}
-                className="rounded-xl overflow-hidden border border-[var(--border)] shadow-sm bg-white"
-              >
-                {/* Question Header */}
-                <div
-                  className={`${headerColor} text-white px-4 py-2 font-semibold flex items-center text-xl`}
-                >
-                  Question {idx + 1}
-                </div>
-
-                {/* Question Body — render according to qType */}
-                {qType === "mcq" && <MCQQuestion question={q} />}
-
-                {qType === "true_false" && <TrueFalseQuestion question={q} />}
-
-                {qType === "fill_blank" && <FillBlankQuestion question={q} />}
-              </article>
-            );
-          })}
-        </div>
+        {/* Client-side player */}
+        <QuizPlayer quiz={quiz} />
       </div>
     </main>
   );

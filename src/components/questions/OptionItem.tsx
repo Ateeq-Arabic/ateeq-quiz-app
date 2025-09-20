@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { renderPrompt } from "@/features/quiz/utils/renderPrompt";
 
@@ -6,6 +8,8 @@ interface OptionItemProps {
   text?: string;
   imageUrl?: string;
   audioUrl?: string;
+  selected?: boolean;
+  onSelect?: () => void;
 }
 
 export default function OptionItem({
@@ -13,6 +17,8 @@ export default function OptionItem({
   text,
   imageUrl,
   audioUrl,
+  selected,
+  onSelect,
 }: OptionItemProps) {
   const hasText = !!text;
   const hasImage = !!imageUrl;
@@ -21,7 +27,10 @@ export default function OptionItem({
   return (
     <li
       key={id}
-      className="p-4 rounded-lg border border-[var(--border)] cursor-pointer hover:bg-[var(--accent)]/10 transition"
+      onClick={onSelect}
+      className={`p-4 rounded-lg border border-[var(--border)] cursor-pointer transition ${
+        selected ? "bg-gray-200 cursor-default" : "hover:bg-[var(--accent)]/10"
+      }`}
     >
       {/* Case 1: text + (image or audio) → flex layout */}
       {hasText && (hasImage || hasAudio) && (
