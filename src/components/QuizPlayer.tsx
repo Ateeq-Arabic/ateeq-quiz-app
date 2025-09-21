@@ -1,4 +1,3 @@
-// src/components/QuizPlayer.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -26,7 +25,7 @@ export default function QuizPlayer({ quiz }: { quiz: Quiz }) {
     <div>
       {/* Score display (after finish) */}
       {finished && result && (
-        <div className="mb-6 p-4 rounded-lg bg-[var(--accent)]/10 border border-[var(--border)]">
+        <div className="mb-6 p-4 rounded-lg bg-[var(--accent)]/30 border border-[var(--border)]">
           <h3 className="text-lg font-semibold">
             Score: {result.score} / {result.total}
           </h3>
@@ -63,9 +62,14 @@ export default function QuizPlayer({ quiz }: { quiz: Quiz }) {
       <div className="mt-8 flex items-center gap-4">
         <button
           type="button"
-          onClick={() => finishQuiz(quiz)}
+          onClick={() => {
+            finishQuiz(quiz);
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }, 50);
+          }}
           disabled={finished}
-          className="px-5 py-2 rounded-lg bg-[var(--primary)] cursor-pointer text-white disabled:opacity-50"
+          className="px-8 py-2 text-lg rounded-lg bg-[var(--primary)] cursor-pointer text-white disabled:opacity-50 border border-[var(--primary)] hover:bg-white hover:text-[var(--primary)] hover:border hover:border-[var(--primary)] transition"
         >
           Finish
         </button>
@@ -73,8 +77,13 @@ export default function QuizPlayer({ quiz }: { quiz: Quiz }) {
         {/* Reset button for development/testing */}
         <button
           type="button"
-          onClick={() => reset()}
-          className="px-4 py-2 rounded-lg border cursor-pointer"
+          onClick={() => {
+            reset();
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }, 50);
+          }}
+          className="px-4 py-2 text-lg rounded-lg border cursor-pointer hover:bg-[var(--primary)] hover:text-[white] transition"
         >
           Reset
         </button>

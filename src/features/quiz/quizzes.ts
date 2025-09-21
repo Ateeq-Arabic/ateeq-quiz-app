@@ -24,19 +24,19 @@ export const quizzes: Quiz[] = [
           {
             id: "o1",
             text: "بَ",
-            imageUrl: "/images/Picsart_25-07-11_17-43-54-205.png",
+            imageUrl: "",
             lang: "ar",
           },
           {
             id: "o2",
             text: "بِ",
-            imageUrl: "/images/Picsart_25-07-11_17-43-54-205.png",
+            imageUrl: "",
             lang: "ar",
           },
           {
             id: "o3",
             text: "بُ",
-            imageUrl: "/images/Picsart_25-07-11_17-43-54-205.png",
+            imageUrl: "",
             lang: "ar",
           },
         ],

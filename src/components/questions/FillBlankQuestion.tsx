@@ -11,6 +11,10 @@ export default function FillBlankQuestion({
 }) {
   const value = useQuizStore((s) => s.answers[question.id] || "");
   const setAnswer = useQuizStore((s) => s.setAnswer);
+  const finished = useQuizStore((s) => s.finished);
+  const result = useQuizStore((s) => s.result);
+
+  const detail = result?.details.find((d) => d.questionId === question.id);
 
   return (
     <QuestionLayout question={question}>
@@ -19,10 +23,30 @@ export default function FillBlankQuestion({
           type="text"
           value={value}
           onChange={(e) => setAnswer(question.id, e.target.value)}
+          disabled={finished}
           placeholder="Type your answer..."
           className="w-full max-w-md px-4 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         />
       </div>
+
+      {/* Feedback after finish */}
+      {finished && detail && (
+        <p className="mt-4 text-center text-sm">
+          Correct Answer:{" "}
+          <span className="font-bold text-green-600">
+            {detail.correctAnswer}
+          </span>
+          {" · "}
+          Your Answer:{" "}
+          <span
+            className={`font-bold ${
+              detail.isCorrect ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {detail.userAnswer ?? "—"}
+          </span>
+        </p>
+      )}
     </QuestionLayout>
   );
 }

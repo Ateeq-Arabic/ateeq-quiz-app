@@ -11,31 +11,63 @@ export default function TrueFalseQuestion({
 }) {
   const selected = useQuizStore((s) => s.answers[question.id]);
   const setAnswer = useQuizStore((s) => s.setAnswer);
+  const finished = useQuizStore((s) => s.finished);
+  const result = useQuizStore((s) => s.result);
+
+  const detail = result?.details.find((d) => d.questionId === question.id);
 
   return (
     <QuestionLayout question={question}>
       <div className="flex justify-center gap-6">
-        <button
-          onClick={() => setAnswer(question.id, "true")}
-          className={`px-6 py-3 rounded-lg border font-bold transition cursor-pointer ${
-            selected === "true"
+        {["true", "false"].map((val) => {
+          const isSelected = selected === val;
+          const isCorrect = detail?.correctAnswer === val;
+          const isUserChoice = detail?.userAnswer === val;
+
+          let classes =
+            "px-6 py-3 rounded-lg border font-bold transition cursor-pointer ";
+          if (!finished) {
+            classes += isSelected
               ? "bg-gray-200 cursor-default"
-              : "hover:bg-green-100"
-          }`}
-        >
-          ✅ True
-        </button>
-        <button
-          onClick={() => setAnswer(question.id, "false")}
-          className={`px-6 py-3 rounded-lg border font-bold transition cursor-pointer ${
-            selected === "false"
-              ? "bg-gray-200 cursor-default"
-              : "hover:bg-red-100"
-          }`}
-        >
-          ❌ False
-        </button>
+              : val === "true"
+              ? "hover:bg-green-100"
+              : "hover:bg-red-100";
+          } else {
+            if (isCorrect) classes += "bg-green-200";
+            else if (isUserChoice) classes += "bg-red-200";
+          }
+
+          return (
+            <button
+              key={val}
+              onClick={() => !finished && setAnswer(question.id, val)}
+              className={classes}
+              disabled={finished}
+            >
+              {val === "true" ? "✅ True" : "❌ False"}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Feedback after finish */}
+      {finished && detail && (
+        <p className="mt-4 text-center text-sm">
+          Correct Answer:{" "}
+          <span className="font-bold text-green-600">
+            {detail.correctAnswer}
+          </span>
+          {" · "}
+          Your Answer:{" "}
+          <span
+            className={`font-bold ${
+              detail.isCorrect ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {detail.userAnswer ?? "—"}
+          </span>
+        </p>
+      )}
     </QuestionLayout>
   );
 }

@@ -59,13 +59,16 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         isCorrect = !!userAnswer && userAnswer === correctAnswer;
       } else if (qType === "true_false") {
         correctAnswer = q.expectedAnswer;
-        isCorrect = !!userAnswer && userAnswer === (q.expectedAnswer ?? "");
+        isCorrect =
+          !!userAnswer &&
+          userAnswer.toLocaleLowerCase() ===
+            (q.expectedAnswer ?? "").toLocaleLowerCase();
       } else if (qType === "fill_blank") {
         correctAnswer = q.expectedAnswer ?? "";
         // strict comparison (including diacritics); trim whitespace on both sides
         isCorrect =
           typeof userAnswer === "string" &&
-          userAnswer.trim() === (correctAnswer ?? "");
+          userAnswer.trim() === (correctAnswer ?? "").trim();
       }
 
       if (isCorrect) score++;
