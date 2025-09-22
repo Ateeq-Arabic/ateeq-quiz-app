@@ -34,14 +34,15 @@ export default function FillBlankQuestion({
 
       {/* Feedback after finish */}
       {finished && detail && (
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-4 text-center text-lg">
           Correct Answer:{" "}
-          <span className="font-bold text-green-600">
+          <span lang="ar" className="font-bold text-green-600">
             {detail.correctAnswer}
           </span>
           {" · "}
           Your Answer:{" "}
           <span
+            lang="ar"
             className={`font-bold ${
               detail.isCorrect ? "text-green-600" : "text-red-600"
             }`}

@@ -25,8 +25,8 @@ export default function QuizPlayer({ quiz }: { quiz: Quiz }) {
     <div>
       {/* Score display (after finish) */}
       {finished && result && (
-        <div className="mb-6 p-4 rounded-lg bg-[var(--accent)]/30 border border-[var(--border)]">
-          <h3 className="text-lg font-semibold">
+        <div className="mb-6 p-4 h-20 rounded-lg bg-[var(--score)] border border-[var(--border)] flex justify-center items-center">
+          <h3 className="text-white text-2xl font-semibold">
             Score: {result.score} / {result.total}
           </h3>
         </div>

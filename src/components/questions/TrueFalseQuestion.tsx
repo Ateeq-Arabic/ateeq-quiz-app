@@ -50,10 +50,13 @@ export default function TrueFalseQuestion({
 
       {/* Feedback after finish */}
       {finished && detail && (
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-4 text-center text-lg">
           Correct Answer:{" "}
           <span className="font-bold text-green-600">
-            {detail.correctAnswer}
+            {detail.correctAnswer
+              ? detail.correctAnswer.charAt(0).toUpperCase() +
+                detail.correctAnswer.slice(1)
+              : "—"}
           </span>
           {" · "}
           Your Answer:{" "}
@@ -62,7 +65,10 @@ export default function TrueFalseQuestion({
               detail.isCorrect ? "text-green-600" : "text-red-600"
             }`}
           >
-            {detail.userAnswer ?? "—"}
+            {detail.userAnswer
+              ? detail.userAnswer?.charAt(0).toUpperCase() +
+                detail.userAnswer?.slice(1)
+              : "—"}
           </span>
         </p>
       )}
