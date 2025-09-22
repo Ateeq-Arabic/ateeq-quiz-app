@@ -20,12 +20,15 @@ export default function FillBlankQuestion({
     <QuestionLayout question={question}>
       <div className="flex justify-center">
         <input
+          id={`fill-${question.id}`}
           type="text"
+          lang="ar"
+          dir="rtl"
           value={value}
           onChange={(e) => setAnswer(question.id, e.target.value)}
           disabled={finished}
-          placeholder="Type your answer..."
-          className="w-full max-w-md px-4 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          placeholder="Type your answer here"
+          className="w-full max-w-md px-4 py-2 h-17 text-xl border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         />
       </div>
 

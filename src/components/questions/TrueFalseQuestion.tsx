@@ -28,10 +28,8 @@ export default function TrueFalseQuestion({
             "px-6 py-3 rounded-lg border font-bold transition cursor-pointer ";
           if (!finished) {
             classes += isSelected
-              ? "bg-gray-200 cursor-default"
-              : val === "true"
-              ? "hover:bg-green-100"
-              : "hover:bg-red-100";
+              ? "bg-[var(--accent)]/30 cursor-default"
+              : "hover:bg-[var(--accent)]/15 cursor-default";
           } else {
             if (isCorrect) classes += "bg-green-200";
             else if (isUserChoice) classes += "bg-red-200";

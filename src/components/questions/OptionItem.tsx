@@ -53,12 +53,12 @@ export default function OptionItem({
         if (!finished && !selected) setAnswer(qid, id);
       }}
       className={`p-4 rounded-lg border cursor-pointer transition ${
-        highlightClass || "hover:bg-[var(--accent)]/30"
+        highlightClass || "hover:bg-[var(--accent)]/15"
       }`}
     >
       {/* Case 1: text + (image or audio) → flex layout */}
       {hasText && (hasImage || hasAudio) && (
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex text-3xl items-center justify-center gap-4">
           <div className="flex-1 text-center">{renderPrompt(text!)}</div>
           {hasImage && (
             <Image
@@ -77,7 +77,7 @@ export default function OptionItem({
 
       {/* Case 2: only text */}
       {hasText && !hasImage && !hasAudio && (
-        <div className="text-center">{renderPrompt(text!)}</div>
+        <div className="text-center text-3xl">{renderPrompt(text!)}</div>
       )}
 
       {/* Case 3: only image */}
