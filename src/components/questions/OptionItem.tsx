@@ -64,14 +64,30 @@ export default function OptionItem({
             <Image
               src={imageUrl!}
               alt={text ?? ""}
-              width={80}
-              height={80}
-              className="h-20 w-auto object-contain"
+              width={150}
+              height={150}
+              className="object-contain mx-auto"
             />
           )}
           {hasAudio && (
             <audio src={audioUrl!} controls className="max-w-[200px]" />
           )}
+        </div>
+      )}
+
+      {/* Case 2: (No Text) Image + Audio, or one of them */}
+      {!hasText && hasImage && hasAudio && (
+        <div className="flex text-3xl items-center justify-center gap-4">
+          {hasImage && (
+            <Image
+              src={imageUrl!}
+              alt={text ?? ""}
+              width={150}
+              height={150}
+              className="object-contain mx-auto"
+            />
+          )}
+          <audio src={audioUrl!} controls className="max-w-[200px]" />
         </div>
       )}
 
@@ -81,20 +97,20 @@ export default function OptionItem({
       )}
 
       {/* Case 3: only image */}
-      {!hasText && hasImage && (
+      {!hasText && !hasAudio && hasImage && (
         <div className="flex justify-center">
           <Image
             src={imageUrl!}
             alt=""
-            width={120}
-            height={120}
-            className="h-28 w-auto object-contain"
+            width={150}
+            height={150}
+            className="object-contain mx-auto"
           />
         </div>
       )}
 
       {/* Case 4: only audio */}
-      {!hasText && hasAudio && (
+      {!hasText && !hasImage && hasAudio && (
         <div className="flex justify-center">
           <audio src={audioUrl!} controls className="max-w-[250px]" />
         </div>

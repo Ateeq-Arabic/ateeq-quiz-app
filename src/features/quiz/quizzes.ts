@@ -89,20 +89,23 @@ export const quizzes: Quiz[] = [
         options: [
           {
             id: "o1",
-            text: "ب",
-            imageUrl: "/images/letters/ba.png",
+            text: "",
+            imageUrl:
+              "https://i.pinimg.com/736x/54/ff/fd/54fffd7c9812ce6941a23d7e4091f397.jpg",
             lang: "ar",
           },
           {
             id: "o2",
-            text: "د",
-            imageUrl: "/images/letters/dal.png",
+            text: "",
+            imageUrl:
+              "https://i.pinimg.com/736x/3e/85/80/3e85803d8329a4dd8a01160f2ee48bea.jpg",
             lang: "ar",
           },
           {
             id: "o3",
-            text: "س",
-            imageUrl: "/images/letters/seen.png",
+            text: "",
+            imageUrl:
+              "https://i.pinimg.com/736x/27/52/51/2752517a41864e922bafb0fe10f6532e.jpg",
             lang: "ar",
           },
         ],
@@ -124,7 +127,8 @@ export const quizzes: Quiz[] = [
           { lang: "en", text: "Listen and type: " },
           { lang: "ar", text: "سَمَك" },
         ],
-        promptAudio: "/audio/samples/samak2.mp3",
+        promptAudio:
+          "https://drive.google.com/uc?export=download&id=1aQLh1W-IMLmqFgwuKu5IwQw-_SXcXkAY",
         expectedAnswer: "سَمَك",
       },
     ],
@@ -210,19 +214,24 @@ export const quizzes: Quiz[] = [
           {
             id: "o1",
             text: "",
-            imageUrl: "/images/Picsart_25-07-11_17-43-54-205.png",
+            imageUrl: "",
+            audioUrl: "/audio/samples/ba_fatha.mp3",
             lang: "ar",
           },
           {
             id: "o2",
             text: "",
-            imageUrl: "/images/Picsart_25-07-11_17-43-54-205.png",
+            imageUrl:
+              "https://i.pinimg.com/736x/c0/b8/5a/c0b85a37ce08bbdc37a0df295184688d.jpg",
+            audioUrl: "/audio/samples/ba_fatha.mp3",
             lang: "ar",
           },
           {
             id: "o3",
-            text: "",
-            imageUrl: "/images/Picsart_25-07-11_17-43-54-205.png",
+            text: "ي",
+            imageUrl:
+              "https://i.pinimg.com/736x/04/a2/9b/04a29be41fec079ef37bb70b2af92bd1.jpg",
+            audioUrl: "/audio/samples/ba_fatha.mp3",
             lang: "ar",
           },
         ],
