@@ -89,10 +89,17 @@ export default function QuestionEditor({
 
       {(question.qType ?? "mcq") === "fill_blank" && (
         <div>
-          <label className="block text-sm">
+          <label
+            htmlFor={`fill-${question.id + "edit"}`}
+            className="block text-sm"
+          >
             Expected answer (exact, diacritics kept)
           </label>
           <input
+            id={`fill-${question.id + "edit"}`}
+            type="text"
+            lang="ar"
+            dir="rtl"
             value={question.expectedAnswer ?? ""}
             onChange={(e) =>
               updateQuestion(question.id, { expectedAnswer: e.target.value })
