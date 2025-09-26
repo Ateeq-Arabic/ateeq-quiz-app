@@ -2,16 +2,31 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function NewQuizPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [group, setGroup] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function onSave() {
-    // dummy behavior: for now just navigate back to list
-    // later this will call Supabase insert
-    router.push("/admin/quizzes");
+  async function onSave() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("quizzes")
+      .insert([{ title, group }])
+      .select()
+      .single();
+
+    setLoading(false);
+
+    if (error) {
+      alert("Error creating quiz: " + error.message);
+      return;
+    }
+
+    // Redirect to edit page of this new quiz
+    router.push(`/admin/quizzes/${data.id}`);
   }
 
   return (
@@ -35,9 +50,10 @@ export default function NewQuizPage() {
         <div className="flex gap-2">
           <button
             onClick={onSave}
-            className="px-4 py-2 bg-[var(--primary)] text-white rounded"
+            disabled={loading}
+            className="px-4 py-2 bg-[var(--primary)] text-white rounded disabled:opacity-50"
           >
-            Save
+            {loading ? "Saving..." : "Save"}
           </button>
           <button
             onClick={() => router.back()}

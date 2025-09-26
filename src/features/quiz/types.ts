@@ -39,7 +39,7 @@ export type QuizQuestion = {
 };
 
 export type Quiz = {
-  id: string; // unique id
+  id: string;
   slug?: string;
   title: string;
   description?: string;
@@ -52,4 +52,39 @@ export type Quiz = {
   group?: string;
 
   questions: QuizQuestion[];
+};
+
+/** Types that match Supabase tables (snake_case) */
+export type DBQuiz = {
+  id: string;
+  slug: string | null;
+  title: string;
+  description: string | null;
+  type: QuizType | null;
+  group: string | null;
+};
+
+export type DBQuestion = {
+  id: string;
+  quiz_id: string;
+  q_type: QuizType | null;
+  prompt_text: string | null;
+  prompt_audio: string | null;
+  prompt_image: string | null;
+  expected_answer: string | null;
+  correct_option_id: string | null;
+};
+
+export type DBOption = {
+  id: string;
+  question_id: string;
+  text?: string;
+  image_url?: string;
+  audio_url?: string;
+  lang?: "ar" | "en";
+  is_correct: boolean;
+};
+
+export type DBQuestionWithOptions = DBQuestion & {
+  options: DBOption[];
 };

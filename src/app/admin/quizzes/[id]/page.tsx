@@ -1,12 +1,18 @@
 "use client";
 
 import { use } from "react";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { quizzes } from "@/features/quiz/quizzes";
+import { supabase } from "@/lib/supabaseClient";
 import QuizForm from "@/components/admin/QuizForm";
 import QuestionEditor from "@/components/admin/QuestionEditor";
-import type { Quiz, QuizQuestion, QuizType } from "@/features/quiz/types";
+import type {
+  Quiz,
+  QuizQuestion,
+  QuizType,
+  DBQuestion,
+  DBQuestionWithOptions,
+} from "@/features/quiz/types";
 import Link from "next/link";
 
 export default function EditQuizPage({
@@ -16,23 +22,66 @@ export default function EditQuizPage({
 }) {
   const router = useRouter();
   const { id } = use(params);
+  const [loading, setLoading] = useState(true);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
 
-  // Always resolve the quiz here
-  const original = quizzes.find((q) => q.id === id) as Quiz | undefined;
+  // fetch quiz + questions
+  useEffect(() => {
+    async function fetchQuiz() {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select(
+          `
+    id, title, description, group,
+    questions:questions (
+      id, q_type, prompt_text, prompt_audio, prompt_image, expected_answer,
+      options:options (
+        id, text, image_url, audio_url, lang, is_correct
+      )
+    )
+    `
+        )
+        .eq("id", id)
+        .single();
 
-  // Hooks must always be called (so no early return above!)
-  const [quiz, setQuiz] = useState<Quiz | null>(
-    original ? structuredClone(original) : null
-  );
+      if (error) {
+        console.error(error);
+      } else {
+        // Map DB fields to our Quiz type
+        setQuiz({
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          group: data.group,
+          questions: (data.questions as DBQuestionWithOptions[]).map(
+            (q): QuizQuestion => ({
+              id: q.id,
+              qType: q.q_type ?? undefined,
+              promptText: q.prompt_text ?? undefined,
+              promptAudio: q.prompt_audio ?? undefined,
+              promptImage: q.prompt_image ?? undefined,
+              expectedAnswer: q.expected_answer ?? undefined,
+              options: q.options?.map((o) => ({
+                id: o.id,
+                text: o.text ?? undefined,
+                imageUrl: o.image_url ?? undefined,
+                audioUrl: o.audio_url ?? undefined,
+                lang: o.lang as "ar" | "en" | undefined,
+              })),
+              correctOptionId: q.options?.find((o) => o.is_correct)?.id,
+            })
+          ),
+        });
+      }
+      setLoading(false);
+    }
 
-  const groupList = useMemo(() => {
-    const groups = new Set<string>();
-    quizzes.forEach((q) => q.group && groups.add(q.group));
-    return Array.from(groups);
-  }, []);
+    fetchQuiz();
+  }, [id]);
 
-  // If quiz not found → render fallback AFTER hooks
-  if (!quiz) {
+  if (loading) return <p className="p-4">Loading...</p>;
+
+  if (!quiz)
     return (
       <main className="p-4">
         <p>Quiz not found</p>
@@ -41,45 +90,82 @@ export default function EditQuizPage({
         </Link>
       </main>
     );
-  }
 
-  // helpers
-  function updateMeta(changes: Partial<Quiz>) {
+  // update quiz metadata
+  async function updateMeta(changes: Partial<Quiz>) {
     setQuiz((q) => ({ ...q!, ...changes }));
+    const { error } = await supabase
+      .from("quizzes")
+      .update(changes)
+      .eq("id", quiz?.id);
+
+    if (error) console.error("Failed to update quiz:", error);
   }
 
-  function addQuestion(qType: QuizType) {
-    const newQ: QuizQuestion = {
-      id: `q_${Date.now()}`,
-      qType,
-      promptText: qType === "true_false" ? "True or False?" : "",
-      promptParts: undefined,
-      promptAudio: undefined,
-      promptImage: undefined,
-      options: qType === "mcq" ? [{ id: "o1", text: "" }] : undefined,
-    };
-    setQuiz((s) => ({ ...s!, questions: [...s!.questions, newQ] }));
+  // add new question
+  async function addQuestion(qType: QuizType) {
+    const { data, error } = await supabase
+      .from("questions")
+      .insert([{ quiz_id: quiz?.id, q_type: qType }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setQuiz((s) => ({
+      ...s!,
+      questions: [
+        ...s!.questions,
+        {
+          id: data.id,
+          qType: data.q_type,
+          promptText: data.prompt_text,
+          promptAudio: data.prompt_audio,
+          promptImage: data.prompt_image,
+          expectedAnswer: data.expected_answer,
+          options: [],
+        },
+      ],
+    }));
   }
 
-  function updateQuestion(qId: string, next: Partial<QuizQuestion>) {
+  // update existing question
+  async function updateQuestion(qId: string, next: Partial<QuizQuestion>) {
     setQuiz((s) => ({
       ...s!,
       questions: s!.questions.map((qq) =>
         qq.id === qId ? { ...qq, ...next } : qq
       ),
     }));
+
+    const payload: Partial<DBQuestion> = {};
+    if (next.promptText !== undefined) payload.prompt_text = next.promptText;
+    if (next.promptAudio !== undefined) payload.prompt_audio = next.promptAudio;
+    if (next.promptImage !== undefined) payload.prompt_image = next.promptImage;
+    if (next.expectedAnswer !== undefined)
+      payload.expected_answer = next.expectedAnswer;
+    if (next.qType !== undefined) payload.q_type = next.qType;
+
+    const { error } = await supabase
+      .from("questions")
+      .update(payload)
+      .eq("id", qId);
+
+    if (error) console.error("Failed to update question:", error);
   }
 
-  function removeQuestion(qId: string) {
+  // remove question
+  async function removeQuestion(qId: string) {
     setQuiz((s) => ({
       ...s!,
       questions: s!.questions.filter((qq) => qq.id !== qId),
     }));
-  }
 
-  function onSave() {
-    // Dummy save
-    router.push("/admin/quizzes");
+    const { error } = await supabase.from("questions").delete().eq("id", qId);
+    if (error) console.error("Failed to delete question:", error);
   }
 
   return (
@@ -88,22 +174,16 @@ export default function EditQuizPage({
         <h2 className="text-2xl font-semibold">Edit Quiz</h2>
         <div className="flex gap-2">
           <button
-            onClick={onSave}
-            className="px-4 py-2 bg-[var(--primary)] text-white rounded"
-          >
-            Save
-          </button>
-          <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/admin/quizzes")}
             className="px-4 py-2 border rounded"
           >
-            Cancel
+            Back
           </button>
         </div>
       </div>
 
       {/* Quiz metadata form */}
-      <QuizForm quiz={quiz} updateMeta={updateMeta} groupList={groupList} />
+      <QuizForm quiz={quiz} updateMeta={updateMeta} groupList={[]} />
 
       {/* Questions section */}
       <section>

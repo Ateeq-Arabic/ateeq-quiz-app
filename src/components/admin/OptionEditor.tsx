@@ -2,6 +2,7 @@
 
 // import { useState } from "react";
 import type { QuizQuestion, QuizOption } from "@/features/quiz/types";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function OptionEditor({
   question,
@@ -12,25 +13,67 @@ export default function OptionEditor({
 }) {
   const options = question.options ?? [];
 
-  function addOption() {
-    const newOpt: QuizOption = { id: `o_${Date.now()}`, text: "" };
+  async function addOption() {
+    const { data, error } = await supabase
+      .from("options")
+      .insert([{ question_id: question.id, text: "" }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const newOpt: QuizOption = {
+      id: data.id,
+      text: data.text ?? "",
+      imageUrl: data.image_url ?? undefined,
+      audioUrl: data.audio_url ?? undefined,
+      lang: data.lang as "ar" | "en" | undefined,
+    };
+
     updateQuestion(question.id, { options: [...options, newOpt] });
   }
 
-  function updateOption(optId: string, next: Partial<QuizOption>) {
+  async function updateOption(optId: string, next: Partial<QuizOption>) {
     updateQuestion(question.id, {
       options: options.map((o) => (o.id === optId ? { ...o, ...next } : o)),
     });
+
+    const payload: Record<string, unknown> = {};
+    if (next.text !== undefined) payload.text = next.text;
+    if (next.imageUrl !== undefined) payload.image_url = next.imageUrl;
+    if (next.audioUrl !== undefined) payload.audio_url = next.audioUrl;
+    if (next.lang !== undefined) payload.lang = next.lang;
+
+    const { error } = await supabase
+      .from("options")
+      .update(payload)
+      .eq("id", optId);
+    if (error) console.error("Failed to update option:", error);
   }
 
-  function removeOption(optId: string) {
+  async function removeOption(optId: string) {
     updateQuestion(question.id, {
       options: options.filter((o) => o.id !== optId),
     });
+
+    const { error } = await supabase.from("options").delete().eq("id", optId);
+    if (error) console.error("Failed to delete option:", error);
   }
 
-  function setCorrect(optId: string) {
+  async function setCorrect(optId: string) {
+    // reset all other options
     updateQuestion(question.id, { correctOptionId: optId });
+
+    // update in DB
+    const { error } = await supabase.rpc("set_correct_option", {
+      question_id: question.id,
+      option_id: optId,
+    });
+
+    if (error) console.error("Failed to set correct option:", error);
   }
 
   return (

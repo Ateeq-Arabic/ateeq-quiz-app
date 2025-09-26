@@ -1,7 +1,20 @@
 import Link from "next/link";
-import { quizzes } from "@/features/quiz/quizzes";
+import { supabase } from "@/lib/supabaseClient";
 
-export default function AdminQuizzesPage() {
+export default async function AdminQuizzesPage() {
+  const { data: quizzes, error } = await supabase
+    .from("quizzes")
+    .select("id, title, group, questions:questions(id)");
+
+  if (error) {
+    console.log("Error fetching quizzes:", error);
+    return (
+      <div className="p-4 text-red-600">
+        Failed to load quizzes: {error.message}
+      </div>
+    );
+  }
+
   return (
     <main className="p-4">
       <div className="flex items-center justify-between mb-6">
@@ -25,11 +38,11 @@ export default function AdminQuizzesPage() {
             </tr>
           </thead>
           <tbody>
-            {quizzes.map((q) => (
+            {quizzes?.map((q) => (
               <tr key={q.id} className="odd:bg-white even:bg-[var(--accent)]/5">
                 <td className="p-3 border">{q.title}</td>
                 <td className="p-3 border">{q.group ?? "—"}</td>
-                <td className="p-3 border">{q.questions.length}</td>
+                <td className="p-3 border">{q.questions?.length ?? 0}</td>
                 <td className="p-3 border">
                   <Link
                     href={`/admin/quizzes/${q.id}`}
