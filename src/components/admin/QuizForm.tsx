@@ -46,6 +46,19 @@ export default function QuizForm({
             ))}
           </datalist>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium">Slug</label>
+          <input
+            value={quiz.slug ?? ""}
+            onChange={(e) => updateMeta({ slug: e.target.value })}
+            className="w-full p-2 border rounded"
+            placeholder="letters-lesson-1"
+          />
+          <p className="text-xs text-[var(--muted)] mt-1">
+            Used in URL, must be unique (e.g., <code>letters-1</code>)
+          </p>
+        </div>
       </div>
     </div>
   );

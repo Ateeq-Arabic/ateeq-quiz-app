@@ -12,9 +12,14 @@ export default function NewQuizPage() {
 
   async function onSave() {
     setLoading(true);
+    const generatedSlug = title
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, ""); // simple slugify
+
     const { data, error } = await supabase
       .from("quizzes")
-      .insert([{ title, group }])
+      .insert([{ title, group, slug: generatedSlug }])
       .select()
       .single();
 

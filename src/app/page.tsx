@@ -1,10 +1,11 @@
-import { quizzes } from "@/features/quiz/quizzes";
+import { supabase } from "@/lib/supabaseClient";
 import QuizGroup from "@/components/QuizGroup";
 import { getGroupColor } from "@/features/quiz/colors";
+import type { Quiz, DBQuiz } from "@/features/quiz/types";
 
 // Group quizzes by their "group" attribute
-function groupByGroup(list: typeof quizzes) {
-  const map = new Map<string, typeof quizzes>();
+function groupByGroup(list: Quiz[]) {
+  const map = new Map<string, Quiz[]>();
   for (const q of list) {
     const key = q.group ?? "Other";
     const arr = map.get(key) ?? [];
@@ -14,7 +15,32 @@ function groupByGroup(list: typeof quizzes) {
   return map;
 }
 
-export default function Home() {
+export default async function Home() {
+  // Fetch quizzes (no questions here — just metadata for the list)
+  const { data, error } = await supabase
+    .from("quizzes")
+    .select("id, slug, title, description, group, type")
+    .order("group", { ascending: true });
+
+  if (error) {
+    console.error("Failed to fetch quizzes:", error.message);
+    return (
+      <main className="p-6">
+        <h1 className="text-red-600">Error loading quizzes</h1>
+      </main>
+    );
+  }
+
+  const quizzes: Quiz[] =
+    data?.map((q: DBQuiz) => ({
+      id: q.id,
+      slug: q.slug ?? undefined,
+      title: q.title,
+      description: q.description ?? undefined,
+      group: q.group ?? undefined,
+      questions: [], // not needed on homepage
+    })) ?? [];
+
   const grouped = groupByGroup(quizzes);
 
   // Convert map to array so we can assign colors consistently
