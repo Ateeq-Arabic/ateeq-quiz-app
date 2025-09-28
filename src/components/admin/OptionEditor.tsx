@@ -3,6 +3,7 @@
 // import { useState } from "react";
 import type { QuizQuestion, QuizOption } from "@/features/quiz/types";
 import { supabase } from "@/lib/supabaseClient";
+import { uploadFile } from "@/lib/storage";
 
 export default function OptionEditor({
   question,
@@ -102,21 +103,30 @@ export default function OptionEditor({
             </div>
 
             <div className="grid grid-cols-1 gap-2">
+              <label className="block text-sm">Option image</label>
               <input
-                value={o.imageUrl ?? ""}
-                onChange={(e) =>
-                  updateOption(o.id, { imageUrl: e.target.value })
-                }
-                placeholder="Image URL (optional)"
-                className="p-2 border rounded"
+                className="p-3 border rounded cursor-pointer bg-emerald-300"
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const url = await uploadFile("quiz-images", file);
+                  updateOption(o.id, { imageUrl: url });
+                }}
               />
+
+              <label className="block text-sm">Option audio</label>
               <input
-                value={o.audioUrl ?? ""}
-                onChange={(e) =>
-                  updateOption(o.id, { audioUrl: e.target.value })
-                }
-                placeholder="Audio URL (optional)"
-                className="p-2 border rounded"
+                className="p-3 border rounded cursor-pointer bg-amber-300"
+                type="file"
+                accept="audio/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const url = await uploadFile("quiz-audio", file);
+                  updateOption(o.id, { audioUrl: url });
+                }}
               />
             </div>
           </div>

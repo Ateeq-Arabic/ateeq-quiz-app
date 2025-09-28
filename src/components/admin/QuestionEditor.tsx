@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { QuizQuestion } from "@/features/quiz/types";
 import OptionEditor from "./OptionEditor";
+import { uploadFile } from "@/lib/storage";
 
 /**
  * Props:
@@ -43,23 +44,30 @@ export default function QuestionEditor({
 
       {/* audio/image url fields */}
       <div className="grid grid-cols-1 gap-3">
-        <label className="block text-sm">Prompt audio URL</label>
+        <label className="block text-sm">Prompt audio</label>
         <input
-          value={question.promptAudio ?? ""}
-          onChange={(e) =>
-            updateQuestion(question.id, { promptAudio: e.target.value })
-          }
-          className="w-full p-2 border rounded"
-          placeholder="/audio/example.mp3 or https://..."
+          className="p-3 border rounded cursor-pointer bg-amber-300"
+          type="file"
+          accept="audio/*"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const url = await uploadFile("quiz-audio", file);
+            updateQuestion(question.id, { promptAudio: url });
+          }}
         />
-        <label className="block text-sm">Prompt image URL</label>
+
+        <label className="block text-sm">Prompt image</label>
         <input
-          value={question.promptImage ?? ""}
-          onChange={(e) =>
-            updateQuestion(question.id, { promptImage: e.target.value })
-          }
-          className="w-full p-2 border rounded"
-          placeholder="/images/example.png or https://..."
+          className="p-3 border rounded cursor-pointer bg-emerald-300"
+          type="file"
+          accept="image/*"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const url = await uploadFile("quiz-images", file);
+            updateQuestion(question.id, { promptImage: url });
+          }}
         />
       </div>
 
