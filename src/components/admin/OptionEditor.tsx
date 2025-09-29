@@ -55,12 +55,24 @@ export default function OptionEditor({
   }
 
   async function removeOption(optId: string) {
+    if (!confirm("Are you sure you want to delete this option?")) return;
+
+    const res = await fetch("/api/admin/delete-option", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ optionId: optId }),
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      alert("Failed to delete option: " + error);
+      return;
+    }
+
+    // Update local state
     updateQuestion(question.id, {
       options: options.filter((o) => o.id !== optId),
     });
-
-    const { error } = await supabase.from("options").delete().eq("id", optId);
-    if (error) console.error("Failed to delete option:", error);
   }
 
   async function setCorrect(optId: string) {

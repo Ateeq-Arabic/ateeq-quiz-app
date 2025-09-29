@@ -159,13 +159,25 @@ export default function EditQuizPage({
 
   // remove question
   async function removeQuestion(qId: string) {
+    if (!confirm("Are you sure you want to delete this question?")) return;
+
+    const res = await fetch("/api/admin/delete-question", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionId: qId }),
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      alert("Failed to delete question: " + error);
+      return;
+    }
+
+    // update UI state after success
     setQuiz((s) => ({
       ...s!,
       questions: s!.questions.filter((qq) => qq.id !== qId),
     }));
-
-    const { error } = await supabase.from("questions").delete().eq("id", qId);
-    if (error) console.error("Failed to delete question:", error);
   }
 
   return (
