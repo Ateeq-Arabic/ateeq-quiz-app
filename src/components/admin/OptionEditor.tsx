@@ -1,6 +1,5 @@
 "use client";
 
-// import { useState } from "react";
 import type { QuizQuestion, QuizOption } from "@/features/quiz/types";
 import { supabase } from "@/lib/supabaseClient";
 import { uploadFile } from "@/lib/storage";
@@ -111,8 +110,17 @@ export default function OptionEditor({
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const url = await uploadFile("quiz-images", file);
-                  updateOption(o.id, { imageUrl: url });
+                  const { publicUrl, path } = await uploadFile(
+                    "quiz-images",
+                    file
+                  );
+
+                  updateOption(o.id, { imageUrl: publicUrl });
+
+                  await supabase
+                    .from("options")
+                    .update({ image_url: publicUrl, image_path: path })
+                    .eq("id", o.id);
                 }}
               />
 
@@ -124,8 +132,17 @@ export default function OptionEditor({
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const url = await uploadFile("quiz-audio", file);
-                  updateOption(o.id, { audioUrl: url });
+                  const { publicUrl, path } = await uploadFile(
+                    "quiz-audio",
+                    file
+                  );
+
+                  updateOption(o.id, { audioUrl: publicUrl });
+
+                  await supabase
+                    .from("options")
+                    .update({ audio_url: publicUrl, audio_path: path })
+                    .eq("id", o.id);
                 }}
               />
             </div>

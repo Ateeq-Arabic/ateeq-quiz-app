@@ -1,18 +1,58 @@
+"use client";
+
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { useEffect, useState } from "react";
 
-export default async function AdminQuizzesPage() {
-  const { data: quizzes, error } = await supabase
-    .from("quizzes")
-    .select("id, title, group, questions:questions(id)");
+type QuizRow = {
+  id: string;
+  title: string;
+  group: string | null;
+  questions: { id: string }[];
+};
 
-  if (error) {
-    console.log("Error fetching quizzes:", error);
-    return (
-      <div className="p-4 text-red-600">
-        Failed to load quizzes: {error.message}
-      </div>
-    );
+export default function AdminQuizzesPage() {
+  const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // fetch quizzes on mount
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id, title, group, questions:questions(id)");
+
+      if (error) {
+        console.error("Error fetching quizzes:", error);
+      } else {
+        setQuizzes((data as QuizRow[]) ?? []);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  async function handleDelete(quizId: string) {
+    if (!confirm("Are you sure you want to delete this quiz?")) return;
+
+    const res = await fetch("/api/admin/delete-quiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quizId }),
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      alert("Failed to delete quiz: " + error);
+      return;
+    }
+
+    // update state to remove deleted quiz
+    setQuizzes((prev) => prev.filter((q) => q.id !== quizId));
+  }
+
+  if (loading) {
+    return <main className="p-4">Loading quizzes...</main>;
   }
 
   return (
@@ -56,6 +96,13 @@ export default async function AdminQuizzesPage() {
                   >
                     Preview
                   </Link>
+
+                  <button
+                    onClick={() => handleDelete(q.id)}
+                    className="text-red-600 hover:underline cursor-pointer ml-4"
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

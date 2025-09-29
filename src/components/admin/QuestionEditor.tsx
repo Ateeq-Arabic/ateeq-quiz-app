@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { QuizQuestion } from "@/features/quiz/types";
 import OptionEditor from "./OptionEditor";
 import { uploadFile } from "@/lib/storage";
+import { supabase } from "@/lib/supabaseClient";
 
 /**
  * Props:
@@ -21,6 +22,10 @@ export default function QuestionEditor({
 
   function onSavePrompt() {
     updateQuestion(question.id, { promptText: tempText });
+    supabase
+      .from("questions")
+      .update({ prompt_text: tempText })
+      .eq("id", question.id);
   }
 
   return (
@@ -42,7 +47,7 @@ export default function QuestionEditor({
         </div>
       </div>
 
-      {/* audio/image url fields */}
+      {/* audio/image uploads */}
       <div className="grid grid-cols-1 gap-3">
         <label className="block text-sm">Prompt audio</label>
         <input
@@ -52,8 +57,16 @@ export default function QuestionEditor({
           onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            const url = await uploadFile("quiz-audio", file);
-            updateQuestion(question.id, { promptAudio: url });
+            const { publicUrl, path } = await uploadFile("quiz-audio", file);
+
+            // Update local state
+            updateQuestion(question.id, { promptAudio: publicUrl });
+
+            // Persist to DB
+            await supabase
+              .from("questions")
+              .update({ prompt_audio: publicUrl, prompt_audio_path: path })
+              .eq("id", question.id);
           }}
         />
 
@@ -65,8 +78,14 @@ export default function QuestionEditor({
           onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            const url = await uploadFile("quiz-images", file);
-            updateQuestion(question.id, { promptImage: url });
+            const { publicUrl, path } = await uploadFile("quiz-images", file);
+
+            updateQuestion(question.id, { promptImage: publicUrl });
+
+            await supabase
+              .from("questions")
+              .update({ prompt_image: publicUrl, prompt_image_path: path })
+              .eq("id", question.id);
           }}
         />
       </div>
