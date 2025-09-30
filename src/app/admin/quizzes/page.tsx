@@ -35,9 +35,15 @@ export default function AdminQuizzesPage() {
   async function handleDelete(quizId: string) {
     if (!confirm("Are you sure you want to delete this quiz?")) return;
 
+    const session = (await supabase.auth.getSession()).data.session;
+    const token = session?.access_token;
+
     const res = await fetch("/api/admin/delete-quiz", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ quizId }),
     });
 

@@ -57,9 +57,15 @@ export default function OptionEditor({
   async function removeOption(optId: string) {
     if (!confirm("Are you sure you want to delete this option?")) return;
 
+    const session = (await supabase.auth.getSession()).data.session;
+    const token = session?.access_token;
+
     const res = await fetch("/api/admin/delete-option", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ optionId: optId }),
     });
 

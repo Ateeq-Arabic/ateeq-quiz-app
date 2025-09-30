@@ -1,5 +1,7 @@
 import Link from "next/link";
 import "../globals.css";
+import AdminGuard from "@/components/admin/AdminGuard";
+import LogoutButton from "@/components/admin/LogoutButton";
 
 export const metadata = {
   title: "Admin - Quiz",
@@ -28,10 +30,13 @@ export default function AdminLayout({
             >
               Quizzes
             </Link>
+
+            <LogoutButton />
           </nav>
         </header>
 
-        <div>{children}</div>
+        {/* client-side guard ensures only admins see the children */}
+        <AdminGuard>{children}</AdminGuard>
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // ⚠️ server-only
-const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+import { supabaseAdmin, ensureAdmin } from "@/app/api/admin/_utils";
 
 export async function POST(req: Request) {
+  // verify admin
+  const adminCheck = await ensureAdmin(req);
+  if (adminCheck instanceof NextResponse) return adminCheck;
+
   try {
     const { optionId } = await req.json();
 
