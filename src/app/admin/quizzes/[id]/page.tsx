@@ -32,7 +32,7 @@ export default function EditQuizPage({
         .from("quizzes")
         .select(
           `
-    id, title, description, group,
+    id, title, description, group, slug,
     questions:questions (
       id, q_type, prompt_text, prompt_audio, prompt_image,
       prompt_audio_path, prompt_image_path, expected_answer,
@@ -55,6 +55,7 @@ export default function EditQuizPage({
           title: data.title,
           description: data.description,
           group: data.group,
+          slug: data.slug ?? undefined,
           questions: (data.questions as DBQuestionWithOptions[]).map(
             (q): QuizQuestion => ({
               id: q.id,
