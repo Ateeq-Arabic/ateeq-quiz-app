@@ -34,9 +34,11 @@ export default function EditQuizPage({
           `
     id, title, description, group,
     questions:questions (
-      id, q_type, prompt_text, prompt_audio, prompt_image, expected_answer,
+      id, q_type, prompt_text, prompt_audio, prompt_image,
+      prompt_audio_path, prompt_image_path, expected_answer,
       options:options (
-        id, text, image_url, audio_url, lang, is_correct
+        id, text, image_url, audio_url,
+        image_path, audio_path, lang, is_correct
       )
     )
     `
@@ -59,13 +61,17 @@ export default function EditQuizPage({
               qType: q.q_type ?? undefined,
               promptText: q.prompt_text ?? undefined,
               promptAudio: q.prompt_audio ?? undefined,
+              promptAudioPath: q.prompt_audio_path ?? undefined,
               promptImage: q.prompt_image ?? undefined,
+              promptImagePath: q.prompt_image_path ?? undefined,
               expectedAnswer: q.expected_answer ?? undefined,
               options: q.options?.map((o) => ({
                 id: o.id,
                 text: o.text ?? undefined,
                 imageUrl: o.image_url ?? undefined,
+                imagePath: o.image_path ?? undefined,
                 audioUrl: o.audio_url ?? undefined,
+                audioPath: o.audio_path ?? undefined,
                 lang: o.lang as "ar" | "en" | undefined,
               })),
               correctOptionId: q.options?.find((o) => o.is_correct)?.id,

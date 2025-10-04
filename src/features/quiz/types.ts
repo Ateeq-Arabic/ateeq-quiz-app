@@ -5,7 +5,9 @@ export type QuizOption = {
   id: string;
   text?: string;
   audioUrl?: string;
+  audioPath?: string;
   imageUrl?: string;
+  imagePath?: string;
   lang?: "ar" | "en"; // optional language hint for rendering
 };
 
@@ -25,7 +27,10 @@ export type QuizQuestion = {
   promptParts?: PromptPart[];
 
   promptAudio?: string;
+  promptAudioPath?: string;
+
   promptImage?: string;
+  promptImagePath?: string;
 
   /** Question-level type — when a quiz has mixed types */
   qType?: QuizType;
@@ -71,6 +76,8 @@ export type DBQuestion = {
   prompt_text: string | null;
   prompt_audio: string | null;
   prompt_image: string | null;
+  prompt_audio_path: string | null;
+  prompt_image_path: string | null;
   expected_answer: string | null;
   correct_option_id: string | null;
 };
@@ -81,6 +88,8 @@ export type DBOption = {
   text?: string;
   image_url?: string;
   audio_url?: string;
+  image_path?: string | null;
+  audio_path?: string | null;
   lang?: "ar" | "en";
   is_correct: boolean;
 };

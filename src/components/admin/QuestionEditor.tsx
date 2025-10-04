@@ -5,6 +5,7 @@ import type { QuizQuestion } from "@/features/quiz/types";
 import OptionEditor from "./OptionEditor";
 import { uploadFile } from "@/lib/storage";
 import { supabase } from "@/lib/supabaseClient";
+import Image from "next/image";
 
 /**
  * Props:
@@ -28,6 +29,37 @@ export default function QuestionEditor({
       .eq("id", question.id);
   }
 
+  async function uploadPromptFile(kind: "audio" | "image", file: File) {
+    const bucket = kind === "audio" ? "quiz-audio" : "quiz-images";
+    const oldPath =
+      kind === "audio" ? question.promptAudioPath : question.promptImagePath;
+
+    const { publicUrl, path } = await uploadFile(bucket, file, oldPath);
+
+    // update local state (used by UI)
+    if (kind === "audio") {
+      updateQuestion(question.id, {
+        promptAudio: publicUrl,
+        promptAudioPath: path,
+      });
+
+      await supabase
+        .from("questions")
+        .update({ prompt_audio: publicUrl, prompt_audio_path: path })
+        .eq("id", question.id);
+    } else {
+      updateQuestion(question.id, {
+        promptImage: publicUrl,
+        promptImagePath: path,
+      });
+
+      await supabase
+        .from("questions")
+        .update({ prompt_image: publicUrl, prompt_image_path: path })
+        .eq("id", question.id);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -49,45 +81,71 @@ export default function QuestionEditor({
 
       {/* audio/image uploads */}
       <div className="grid grid-cols-1 gap-3">
-        <label className="block text-sm">Prompt audio</label>
-        <input
-          className="p-3 border rounded cursor-pointer bg-amber-300"
-          type="file"
-          accept="audio/*"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const { publicUrl, path } = await uploadFile("quiz-audio", file);
+        {/* Prompt audio */}
+        <div>
+          <label className="block text-sm">Prompt audio</label>
+          {question.promptAudio ? (
+            <div className="flex items-center gap-3">
+              <audio controls src={question.promptAudio} />
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await uploadPromptFile("audio", file);
+                }}
+              />
+            </div>
+          ) : (
+            <input
+              className="p-3 border rounded cursor-pointer bg-amber-300"
+              type="file"
+              accept="audio/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                await uploadPromptFile("audio", file);
+              }}
+            />
+          )}
+        </div>
 
-            // Update local state
-            updateQuestion(question.id, { promptAudio: publicUrl });
-
-            // Persist to DB
-            await supabase
-              .from("questions")
-              .update({ prompt_audio: publicUrl, prompt_audio_path: path })
-              .eq("id", question.id);
-          }}
-        />
-
-        <label className="block text-sm">Prompt image</label>
-        <input
-          className="p-3 border rounded cursor-pointer bg-emerald-300"
-          type="file"
-          accept="image/*"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const { publicUrl, path } = await uploadFile("quiz-images", file);
-
-            updateQuestion(question.id, { promptImage: publicUrl });
-
-            await supabase
-              .from("questions")
-              .update({ prompt_image: publicUrl, prompt_image_path: path })
-              .eq("id", question.id);
-          }}
-        />
+        {/* Prompt image */}
+        <div>
+          <label className="block text-sm">Prompt image</label>
+          {question.promptImage ? (
+            <div className="flex items-center gap-3">
+              <Image
+                src={question.promptImage}
+                alt="Prompt"
+                className="w-32 h-32 object-cover rounded"
+                width={96}
+                height={96}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await uploadPromptFile("image", file);
+                }}
+              />
+            </div>
+          ) : (
+            <input
+              className="p-3 border rounded cursor-pointer bg-emerald-300"
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                await uploadPromptFile("image", file);
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* type-specific editors */}
