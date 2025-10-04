@@ -34,17 +34,33 @@ export default function QuizForm({
 
         <div>
           <label className="block text-sm font-medium">Group</label>
-          <input
+          <select
             value={quiz.group ?? ""}
-            onChange={(e) => updateMeta({ group: e.target.value })}
+            onChange={(e) => {
+              if (e.target.value === "__new") {
+                const newGroup = prompt("Enter new group name:");
+                if (newGroup) {
+                  updateMeta({ group: newGroup });
+                  if (!groupList.includes(newGroup)) {
+                    groupList.push(newGroup); // quick local add
+                  }
+                }
+              } else {
+                updateMeta({ group: e.target.value });
+              }
+            }}
             className="w-full p-2 border rounded"
-            list="groups-list"
-          />
-          <datalist id="groups-list">
+          >
+            <option value="" disabled>
+              -- Select group --
+            </option>
             {groupList.map((g) => (
-              <option value={g} key={g} />
+              <option key={g} value={g}>
+                {g}
+              </option>
             ))}
-          </datalist>
+            <option value="__new">+ Add new group</option>
+          </select>
         </div>
 
         <div>

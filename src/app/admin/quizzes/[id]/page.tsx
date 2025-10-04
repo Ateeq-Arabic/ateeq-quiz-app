@@ -24,6 +24,7 @@ export default function EditQuizPage({
   const { id } = use(params);
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [groups, setGroups] = useState<string[]>([]);
 
   // fetch quiz + questions
   useEffect(() => {
@@ -85,6 +86,22 @@ export default function EditQuizPage({
 
     fetchQuiz();
   }, [id]);
+
+  useEffect(() => {
+    async function fetchGroups() {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("group")
+        .not("group", "is", null);
+
+      if (!error && data) {
+        const uniqueGroups = Array.from(new Set(data.map((d) => d.group)));
+        setGroups(uniqueGroups as string[]);
+      }
+    }
+
+    fetchGroups();
+  }, []);
 
   if (loading) return <p className="p-4">Loading...</p>;
 
@@ -208,7 +225,7 @@ export default function EditQuizPage({
       </div>
 
       {/* Quiz metadata form */}
-      <QuizForm quiz={quiz} updateMeta={updateMeta} groupList={[]} />
+      <QuizForm quiz={quiz} updateMeta={updateMeta} groupList={groups} />
 
       {/* Questions section */}
       <section>
