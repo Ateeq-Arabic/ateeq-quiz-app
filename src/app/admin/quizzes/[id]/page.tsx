@@ -115,6 +115,28 @@ export default function EditQuizPage({
       </main>
     );
 
+  function validateQuestion(q: QuizQuestion): string | null {
+    // must have some content
+    if (!q.promptText && !q.promptImage && !q.promptAudio) {
+      return "Question must have text, image, or audio.";
+    }
+
+    // for MCQ: must have at least 2 options and each option must have content
+    if (q.qType === "mcq") {
+      if (!q.options || q.options.length < 2) {
+        return "MCQ must have at least 2 options.";
+      }
+
+      for (const opt of q.options) {
+        if (!opt.text && !opt.imageUrl && !opt.audioUrl) {
+          return "Each option must have text, image, or audio.";
+        }
+      }
+    }
+
+    return null;
+  }
+
   // update quiz metadata
   async function updateMeta(changes: Partial<Quiz>) {
     setQuiz((q) => ({ ...q!, ...changes }));
@@ -139,25 +161,43 @@ export default function EditQuizPage({
       return;
     }
 
+    const newQuestion: QuizQuestion = {
+      id: data.id,
+      qType: data.q_type,
+      promptText: data.prompt_text,
+      promptAudio: data.prompt_audio,
+      promptImage: data.prompt_image,
+      expectedAnswer: data.expected_answer,
+      options: [],
+    };
+
+    // if T/F and no expected answer, set to "true"
+    if (qType === "true_false" && !data.expected_answer) {
+      newQuestion.expectedAnswer = "true";
+      await supabase
+        .from("questions")
+        .update({ expected_answer: "true" })
+        .eq("id", data.id);
+    }
+
     setQuiz((s) => ({
       ...s!,
-      questions: [
-        ...s!.questions,
-        {
-          id: data.id,
-          qType: data.q_type,
-          promptText: data.prompt_text,
-          promptAudio: data.prompt_audio,
-          promptImage: data.prompt_image,
-          expectedAnswer: data.expected_answer,
-          options: [],
-        },
-      ],
+      questions: [...s!.questions, newQuestion],
     }));
   }
 
   // update existing question
   async function updateQuestion(qId: string, next: Partial<QuizQuestion>) {
+    const currentQ = quiz!.questions.find((qq) => qq.id === qId)!;
+    const updatedQ: QuizQuestion = { ...currentQ, ...next };
+
+    // validate before saving
+    const error = validateQuestion(updatedQ);
+    if (error) {
+      alert(error);
+      return;
+    }
+
     setQuiz((s) => ({
       ...s!,
       questions: s!.questions.map((qq) =>
@@ -173,12 +213,12 @@ export default function EditQuizPage({
       payload.expected_answer = next.expectedAnswer;
     if (next.qType !== undefined) payload.q_type = next.qType;
 
-    const { error } = await supabase
+    const { error: dbError } = await supabase
       .from("questions")
       .update(payload)
       .eq("id", qId);
 
-    if (error) console.error("Failed to update question:", error);
+    if (dbError) console.error("Failed to update question:", error);
   }
 
   // remove question

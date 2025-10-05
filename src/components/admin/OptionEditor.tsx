@@ -54,6 +54,14 @@ export default function OptionEditor({
   }
 
   async function updateOption(optId: string, next: Partial<QuizOption>) {
+    const opt = options.find((o) => o.id === optId);
+    const merged = { ...opt, ...next };
+
+    if (!merged.text && !merged.imageUrl && !merged.audioUrl) {
+      alert("Option must have at least text, image, or audio.");
+      return;
+    }
+
     updateQuestion(question.id, {
       options: options.map((o) => (o.id === optId ? { ...o, ...next } : o)),
     });

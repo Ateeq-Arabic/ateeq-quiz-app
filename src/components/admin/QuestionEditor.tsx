@@ -161,9 +161,14 @@ export default function QuestionEditor({
           <label className="block text-sm">Expected answer</label>
           <select
             value={question.expectedAnswer ?? "true"}
-            onChange={(e) =>
-              updateQuestion(question.id, { expectedAnswer: e.target.value })
-            }
+            onChange={async (e) => {
+              const val = e.target.value;
+              updateQuestion(question.id, { expectedAnswer: val });
+              await supabase
+                .from("questions")
+                .update({ expected_answer: val })
+                .eq("id", question.id);
+            }}
             className="p-2 border rounded"
           >
             <option value="true">True</option>
