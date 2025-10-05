@@ -25,6 +25,7 @@ export default function EditQuizPage({
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   // fetch quiz + questions
   useEffect(() => {
@@ -135,6 +136,48 @@ export default function EditQuizPage({
     }
 
     return null;
+  }
+
+  function handleFormChange(next: Partial<Quiz>) {
+    setQuiz((q) => ({ ...q!, ...next }));
+  }
+
+  async function saveQuiz() {
+    if (!quiz!.title?.trim()) {
+      alert("Title cannot be empty");
+      return;
+    }
+    if (!quiz!.group?.trim()) {
+      alert("Group cannot be empty");
+      return;
+    }
+    if (!quiz!.description?.trim()) {
+      alert("Description cannot be empty");
+      return;
+    }
+    if (!quiz!.slug?.trim()) {
+      alert("Slug cannot be empty");
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("quizzes")
+      .update({
+        title: quiz!.title,
+        description: quiz!.description,
+        group: quiz!.group,
+        slug: quiz!.slug,
+      })
+      .eq("id", quiz!.id);
+
+    setSaving(false);
+
+    if (error) {
+      alert("Failed to save quiz: " + error.message);
+    } else {
+      alert("Quiz saved!");
+    }
   }
 
   // update quiz metadata
@@ -256,6 +299,14 @@ export default function EditQuizPage({
         <h2 className="text-2xl font-semibold">Edit Quiz</h2>
         <div className="flex gap-2">
           <button
+            onClick={saveQuiz}
+            disabled={saving}
+            className="px-4 py-2 bg-[var(--primary)] text-white rounded disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+
+          <button
             onClick={() => router.push("/admin/quizzes")}
             className="px-4 py-2 border rounded"
           >
@@ -265,7 +316,7 @@ export default function EditQuizPage({
       </div>
 
       {/* Quiz metadata form */}
-      <QuizForm quiz={quiz} updateMeta={updateMeta} groupList={groups} />
+      <QuizForm quiz={quiz} onChange={handleFormChange} groupList={groups} />
 
       {/* Questions section */}
       <section>

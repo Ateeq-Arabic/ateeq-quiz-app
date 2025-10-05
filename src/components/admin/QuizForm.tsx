@@ -1,24 +1,38 @@
 "use client";
 
 import type { Quiz } from "@/features/quiz/types";
+import { useState, useEffect } from "react";
 
 export default function QuizForm({
   quiz,
-  updateMeta,
+  onChange,
   groupList = [],
 }: {
   quiz: Quiz;
-  updateMeta: (next: Partial<Quiz>) => void;
+  onChange: (next: Partial<Quiz>) => void;
   groupList?: string[];
 }) {
+  const [local, setLocal] = useState(quiz);
+
+  // keep local in sync if parent updates quiz
+  useEffect(() => setLocal(quiz), [quiz]);
+
+  function updateField<K extends keyof Quiz>(key: K, value: Quiz[K]) {
+    setLocal((prev) => {
+      const next = { ...prev, [key]: value };
+      return next;
+    });
+    onChange({ [key]: value });
+  }
+
   return (
     <div className="p-4 border rounded">
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label className="block text-sm font-medium">Title</label>
           <input
-            value={quiz.title}
-            onChange={(e) => updateMeta({ title: e.target.value })}
+            value={local.title}
+            onChange={(e) => updateField("title", e.target.value)}
             className="w-full p-2 border rounded"
           />
         </div>
@@ -26,8 +40,8 @@ export default function QuizForm({
         <div>
           <label className="block text-sm font-medium">Description</label>
           <textarea
-            value={quiz.description ?? ""}
-            onChange={(e) => updateMeta({ description: e.target.value })}
+            value={local.description ?? ""}
+            onChange={(e) => updateField("description", e.target.value)}
             className="w-full p-2 border rounded"
           />
         </div>
@@ -35,18 +49,18 @@ export default function QuizForm({
         <div>
           <label className="block text-sm font-medium">Group</label>
           <select
-            value={quiz.group ?? ""}
+            value={local.group ?? ""}
             onChange={(e) => {
               if (e.target.value === "__new") {
                 const newGroup = prompt("Enter new group name:");
                 if (newGroup) {
-                  updateMeta({ group: newGroup });
+                  updateField("group", newGroup);
                   if (!groupList.includes(newGroup)) {
                     groupList.push(newGroup); // quick local add
                   }
                 }
               } else {
-                updateMeta({ group: e.target.value });
+                updateField("group", e.target.value);
               }
             }}
             className="w-full p-2 border rounded"
@@ -66,8 +80,8 @@ export default function QuizForm({
         <div>
           <label className="block text-sm font-medium">Slug</label>
           <input
-            value={quiz.slug ?? ""}
-            onChange={(e) => updateMeta({ slug: e.target.value })}
+            value={local.slug ?? ""}
+            onChange={(e) => updateField("slug", e.target.value)}
             className="w-full p-2 border rounded"
             placeholder="letters-lesson-1"
           />
