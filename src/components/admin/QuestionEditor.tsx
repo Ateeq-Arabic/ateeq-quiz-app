@@ -1,63 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import type { QuizQuestion } from "@/features/quiz/types";
+import { useState, useEffect } from "react";
+import type { LocalQuestion } from "@/features/quiz/types";
 import OptionEditor from "./OptionEditor";
-import { uploadFile } from "@/lib/storage";
-import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
 
-/**
- * Props:
- * - question: the question object (editable)
- * - updateQuestion: (id, partial) => void
- */
 export default function QuestionEditor({
   question,
-  updateQuestion,
+  onSave,
 }: {
-  question: QuizQuestion;
-  updateQuestion: (id: string, next: Partial<QuizQuestion>) => void;
+  question: LocalQuestion;
+  onSave: (updatedQ: LocalQuestion) => void;
 }) {
-  const [tempText, setTempText] = useState(question.promptText ?? "");
+  const [localQ, setLocalQ] = useState<LocalQuestion>({ ...question });
 
-  function onSavePrompt() {
-    updateQuestion(question.id, { promptText: tempText });
-    supabase
-      .from("questions")
-      .update({ prompt_text: tempText })
-      .eq("id", question.id);
-  }
+  // cleanup object URLs on unmount (optional but good)
+  useEffect(() => {
+    return () => {
+      // If you created any object URLs earlier, revoke them here.
+      // (You might want to keep a small array of created URLs if you care.)
+    };
+  }, []);
 
-  async function uploadPromptFile(kind: "audio" | "image", file: File) {
-    const bucket = kind === "audio" ? "quiz-audio" : "quiz-images";
-    const oldPath =
-      kind === "audio" ? question.promptAudioPath : question.promptImagePath;
-
-    const { publicUrl, path } = await uploadFile(bucket, file, oldPath);
-
-    // update local state (used by UI)
-    if (kind === "audio") {
-      updateQuestion(question.id, {
-        promptAudio: publicUrl,
-        promptAudioPath: path,
-      });
-
-      await supabase
-        .from("questions")
-        .update({ prompt_audio: publicUrl, prompt_audio_path: path })
-        .eq("id", question.id);
-    } else {
-      updateQuestion(question.id, {
-        promptImage: publicUrl,
-        promptImagePath: path,
-      });
-
-      await supabase
-        .from("questions")
-        .update({ prompt_image: publicUrl, prompt_image_path: path })
-        .eq("id", question.id);
-    }
+  function handleChange<K extends keyof LocalQuestion>(
+    field: K,
+    value: LocalQuestion[K]
+  ) {
+    setLocalQ((q) => ({ ...q, [field]: value }));
   }
 
   return (
@@ -65,18 +34,10 @@ export default function QuestionEditor({
       <div>
         <label className="block text-sm font-medium">Prompt (text)</label>
         <textarea
-          value={tempText}
-          onChange={(e) => setTempText(e.target.value)}
+          value={localQ.promptText ?? ""}
+          onChange={(e) => handleChange("promptText", e.target.value)}
           className="w-full p-2 border rounded"
         />
-        <div className="mt-2 flex gap-2">
-          <button
-            onClick={onSavePrompt}
-            className="px-3 py-1 bg-[var(--primary)] text-white rounded"
-          >
-            Save Prompt
-          </button>
-        </div>
       </div>
 
       {/* audio/image uploads */}
@@ -84,16 +45,20 @@ export default function QuestionEditor({
         {/* Prompt audio */}
         <div>
           <label className="block text-sm">Prompt audio</label>
-          {question.promptAudio ? (
+          {localQ.promptAudio ? (
             <div className="flex items-center gap-3">
-              <audio controls src={question.promptAudio} />
+              <audio controls src={localQ.promptAudio} />
               <input
                 type="file"
                 accept="audio/*"
-                onChange={async (e) => {
+                onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (!file) return;
-                  await uploadPromptFile("audio", file);
+                  if (file) {
+                    const preview = URL.createObjectURL(file);
+                    // keep the File (for upload later) and a preview URL
+                    handleChange("_newPromptAudioFile", file);
+                    handleChange("promptAudio", preview);
+                  }
                 }}
               />
             </div>
@@ -102,10 +67,13 @@ export default function QuestionEditor({
               className="p-3 border rounded cursor-pointer bg-amber-300"
               type="file"
               accept="audio/*"
-              onChange={async (e) => {
+              onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file) return;
-                await uploadPromptFile("audio", file);
+                if (file) {
+                  const preview = URL.createObjectURL(file);
+                  handleChange("_newPromptAudioFile", file);
+                  handleChange("promptAudio", preview);
+                }
               }}
             />
           )}
@@ -114,10 +82,10 @@ export default function QuestionEditor({
         {/* Prompt image */}
         <div>
           <label className="block text-sm">Prompt image</label>
-          {question.promptImage ? (
+          {localQ.promptImage ? (
             <div className="flex items-center gap-3">
               <Image
-                src={question.promptImage}
+                src={localQ.promptImage}
                 alt="Prompt"
                 className="w-32 h-32 object-cover rounded"
                 width={96}
@@ -126,10 +94,13 @@ export default function QuestionEditor({
               <input
                 type="file"
                 accept="image/*"
-                onChange={async (e) => {
+                onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (!file) return;
-                  await uploadPromptFile("image", file);
+                  if (file) {
+                    const preview = URL.createObjectURL(file);
+                    handleChange("_newPromptImageFile", file);
+                    handleChange("promptImage", preview);
+                  }
                 }}
               />
             </div>
@@ -138,10 +109,13 @@ export default function QuestionEditor({
               className="p-3 border rounded cursor-pointer bg-emerald-300"
               type="file"
               accept="image/*"
-              onChange={async (e) => {
+              onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file) return;
-                await uploadPromptFile("image", file);
+                if (file) {
+                  const preview = URL.createObjectURL(file);
+                  handleChange("_newPromptImageFile", file);
+                  handleChange("promptImage", preview);
+                }
               }}
             />
           )}
@@ -149,26 +123,29 @@ export default function QuestionEditor({
       </div>
 
       {/* type-specific editors */}
-      {(question.qType ?? "mcq") === "mcq" && (
+      {(localQ.qType ?? "mcq") === "mcq" && (
         <div>
           <h4 className="font-medium mb-2">Options</h4>
-          <OptionEditor question={question} updateQuestion={updateQuestion} />
+          <OptionEditor
+            options={localQ.options ?? []}
+            correctOptionId={localQ.correctOptionId}
+            onChange={(opts, correctId) =>
+              setLocalQ((q) => ({
+                ...q,
+                options: opts,
+                correctOptionId: correctId,
+              }))
+            }
+          />
         </div>
       )}
 
-      {(question.qType ?? "mcq") === "true_false" && (
+      {(localQ.qType ?? "mcq") === "true_false" && (
         <div>
           <label className="block text-sm">Expected answer</label>
           <select
-            value={question.expectedAnswer ?? "true"}
-            onChange={async (e) => {
-              const val = e.target.value;
-              updateQuestion(question.id, { expectedAnswer: val });
-              await supabase
-                .from("questions")
-                .update({ expected_answer: val })
-                .eq("id", question.id);
-            }}
+            value={localQ.expectedAnswer ?? "true"}
+            onChange={(e) => handleChange("expectedAnswer", e.target.value)}
             className="p-2 border rounded"
           >
             <option value="true">True</option>
@@ -177,27 +154,27 @@ export default function QuestionEditor({
         </div>
       )}
 
-      {(question.qType ?? "mcq") === "fill_blank" && (
+      {(localQ.qType ?? "mcq") === "fill_blank" && (
         <div>
-          <label
-            htmlFor={`fill-${question.id + "edit"}`}
-            className="block text-sm"
-          >
-            Expected answer (exact, diacritics kept)
-          </label>
+          <label className="block text-sm">Expected answer</label>
           <input
-            id={`fill-${question.id + "edit"}`}
             type="text"
             lang="ar"
             dir="rtl"
-            value={question.expectedAnswer ?? ""}
-            onChange={(e) =>
-              updateQuestion(question.id, { expectedAnswer: e.target.value })
-            }
+            value={localQ.expectedAnswer ?? ""}
+            onChange={(e) => handleChange("expectedAnswer", e.target.value)}
             className="w-full p-2 border rounded"
           />
         </div>
       )}
+
+      {/* Save button */}
+      <button
+        onClick={() => onSave(localQ)}
+        className="px-4 py-2 bg-[var(--primary)] text-white rounded"
+      >
+        Save Question
+      </button>
     </div>
   );
 }

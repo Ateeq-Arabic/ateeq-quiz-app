@@ -85,9 +85,9 @@ export type DBQuestion = {
 export type DBOption = {
   id: string;
   question_id: string;
-  text?: string;
-  image_url?: string;
-  audio_url?: string;
+  text?: string | null;
+  image_url?: string | null;
+  audio_url?: string | null;
   image_path?: string | null;
   audio_path?: string | null;
   lang?: "ar" | "en";
@@ -96,4 +96,17 @@ export type DBOption = {
 
 export type DBQuestionWithOptions = DBQuestion & {
   options: DBOption[];
+};
+
+// local-only fields prefixed with _
+export type LocalOption = QuizOption & {
+  _newImageFile?: File | null;
+  _newAudioFile?: File | null;
+  _markedForDelete?: boolean; // optional usage
+};
+
+export type LocalQuestion = QuizQuestion & {
+  options?: LocalOption[];
+  _newPromptImageFile?: File | null; // if user selected a new prompt image
+  _newPromptAudioFile?: File | null; // if user selected a new prompt audio
 };

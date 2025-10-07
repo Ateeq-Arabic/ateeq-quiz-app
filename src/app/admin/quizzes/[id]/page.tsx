@@ -4,6 +4,7 @@ import { use } from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { uploadFile } from "@/lib/storage";
 import QuizForm from "@/components/admin/QuizForm";
 import QuestionEditor from "@/components/admin/QuestionEditor";
 import type {
@@ -12,8 +13,12 @@ import type {
   QuizType,
   DBQuestion,
   DBQuestionWithOptions,
+  LocalQuestion,
+  LocalOption,
+  DBOption,
 } from "@/features/quiz/types";
 import Link from "next/link";
+import { v4 as uuidv4 } from "uuid";
 
 export default function EditQuizPage({
   params,
@@ -122,6 +127,14 @@ export default function EditQuizPage({
       return "Question must have text, image, or audio.";
     }
 
+    if (q.qType === "true_false" && !q.expectedAnswer) {
+      return "True/False question must have an expected answer.";
+    }
+
+    if (q.qType === "fill_blank" && !q.expectedAnswer?.trim()) {
+      return "Fill-in-the-blank must have an expected answer.";
+    }
+
     // for MCQ: must have at least 2 options and each option must have content
     if (q.qType === "mcq") {
       if (!q.options || q.options.length < 2) {
@@ -136,6 +149,245 @@ export default function EditQuizPage({
     }
 
     return null;
+  }
+
+  async function saveQuestion(qId: string, updatedQ: LocalQuestion) {
+    // validate
+    const error = validateQuestion(updatedQ);
+    if (error) {
+      alert(error);
+      return;
+    }
+
+    // if it's a temp question -> insert first into DB
+    if (qId.startsWith("temp-")) {
+      const { data, error } = await supabase
+        .from("questions")
+        .insert([{ quiz_id: quiz!.id, q_type: updatedQ.qType ?? "mcq" }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const realId = data.id;
+      const oldTempId = updatedQ.id;
+
+      updatedQ.id = realId;
+      qId = realId; // replace temp id for rest of logic
+
+      // update local quiz state with real ID immediately
+      setQuiz((s) => ({
+        ...s!,
+        questions: s!.questions.map((qq) =>
+          qq.id === oldTempId ? { ...updatedQ, id: realId } : qq
+        ),
+      }));
+    }
+
+    // find original question (server-backed)
+    let original = quiz!.questions.find((qq) => qq.id === qId);
+
+    if (!original) {
+      original = { ...updatedQ, options: [] };
+    }
+
+    // compute deleted option IDs (present in original but not in updated)
+    const origIds = new Set((original.options ?? []).map((o) => o.id));
+    const updatedIds = new Set(
+      (updatedQ.options ?? []).map((o: LocalOption) => o.id)
+    );
+    const deletedIds = Array.from(origIds).filter((id) => !updatedIds.has(id));
+
+    // 1) Delete removed options (and their storage files) via your existing API endpoint
+    for (const delId of deletedIds) {
+      // call server API that also deletes storage (delete-option server code does that)
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+      const res = await fetch("/api/admin/delete-option", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ optionId: delId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          "Failed to delete option: " + (body?.error ?? res.statusText)
+        );
+      }
+    }
+
+    // Map tempId -> realId for newly inserted options (so we can fix correctOptionId)
+    const tempIdMap = new Map<string, string>();
+
+    // 2) For each option in updatedQ, handle file uploads (if any) and upsert DB rows.
+    // We'll iterate sequentially to keep it simple and safe.
+    for (const opt of updatedQ.options ?? []) {
+      // NOTE: opt may be "temp-..." id => new option that needs insert
+      // If opt._newImageFile or opt._newAudioFile exist => upload them
+
+      // prepare payload for DB
+      const payload: Partial<DBOption> = {
+        text: opt.text ?? undefined,
+        lang: opt.lang ?? undefined,
+      };
+
+      // image
+      if (opt._newImageFile) {
+        // uploadFile will delete the old path (opt.imagePath) if provided
+        const upl = await uploadFile(
+          "quiz-images",
+          opt._newImageFile,
+          opt.imagePath ?? undefined
+        );
+
+        payload.image_url = upl.publicUrl;
+        payload.image_path = upl.path;
+
+        // replace preview URL with real public url
+        opt.imageUrl = upl.publicUrl;
+        opt.imagePath = upl.path;
+
+        delete opt._newImageFile;
+      } else if (opt.imageUrl && opt.imagePath) {
+        payload.image_url = opt.imageUrl;
+        payload.image_path = opt.imagePath;
+      } else {
+        payload.image_url = null;
+        payload.image_path = null;
+      }
+
+      // audio
+      if (opt._newAudioFile) {
+        const upl = await uploadFile(
+          "quiz-audio",
+          opt._newAudioFile,
+          opt.audioPath ?? undefined
+        );
+
+        payload.audio_url = upl.publicUrl;
+        payload.audio_path = upl.path;
+
+        opt.audioUrl = upl.publicUrl;
+        opt.audioPath = upl.path;
+
+        delete opt._newAudioFile;
+      } else if (opt.audioUrl && opt.audioPath) {
+        payload.audio_url = opt.audioUrl;
+        payload.audio_path = opt.audioPath;
+      } else {
+        payload.audio_url = null;
+        payload.audio_path = null;
+      }
+
+      if (String(opt.id).startsWith("temp-")) {
+        // new option -> insert
+        const { data, error } = await supabase
+          .from("options")
+          .insert([{ question_id: qId, ...payload }])
+          .select()
+          .single();
+        if (error) throw error;
+
+        // replace temp id with real id for UI
+        const oldTempId = opt.id;
+        opt.id = data.id;
+        tempIdMap.set(oldTempId, data.id);
+
+        // if correctOptionId referenced this temp id, replace it
+        if (updatedQ.correctOptionId === oldTempId) {
+          updatedQ.correctOptionId = data.id;
+        }
+      } else {
+        // existing -> update
+        const { error } = await supabase
+          .from("options")
+          .update(payload)
+          .eq("id", opt.id);
+        if (error) throw error;
+      }
+    }
+
+    // 3) Update question row (prompt_text/audio/image/expected_answer/q_type)
+    const questionPayload: Partial<DBQuestion> = {
+      prompt_text: updatedQ.promptText ?? null,
+      prompt_audio: updatedQ.promptAudio ?? null,
+      prompt_audio_path: updatedQ.promptAudioPath ?? null,
+      prompt_image: updatedQ.promptImage ?? null,
+      prompt_image_path: updatedQ.promptImagePath ?? null,
+      expected_answer: updatedQ.expectedAnswer ?? null,
+      q_type: updatedQ.qType ?? null,
+    };
+
+    // prompt image
+    if ((updatedQ as LocalQuestion)._newPromptImageFile) {
+      const f = (updatedQ as LocalQuestion)._newPromptImageFile!;
+      const upl = await uploadFile(
+        "quiz-images",
+        f,
+        updatedQ.promptImagePath ?? undefined
+      );
+      questionPayload.prompt_image = upl.publicUrl;
+      questionPayload.prompt_image_path = upl.path;
+      updatedQ.promptImage = upl.publicUrl;
+      updatedQ.promptImagePath = upl.path;
+      delete (updatedQ as LocalQuestion)._newPromptImageFile;
+    } else if (updatedQ.promptImage && updatedQ.promptImagePath) {
+      questionPayload.prompt_image = updatedQ.promptImage;
+      questionPayload.prompt_image_path = updatedQ.promptImagePath;
+    } else {
+      questionPayload.prompt_image = null;
+      questionPayload.prompt_image_path = null;
+    }
+
+    // prompt audio
+    if ((updatedQ as LocalQuestion)._newPromptAudioFile) {
+      const f = (updatedQ as LocalQuestion)._newPromptAudioFile!;
+      const upl = await uploadFile(
+        "quiz-audio",
+        f,
+        updatedQ.promptAudioPath ?? undefined
+      );
+      questionPayload.prompt_audio = upl.publicUrl;
+      questionPayload.prompt_audio_path = upl.path;
+      updatedQ.promptAudio = upl.publicUrl;
+      updatedQ.promptAudioPath = upl.path;
+      delete (updatedQ as LocalQuestion)._newPromptAudioFile;
+    } else if (updatedQ.promptAudio && updatedQ.promptAudioPath) {
+      questionPayload.prompt_audio = updatedQ.promptAudio;
+      questionPayload.prompt_audio_path = updatedQ.promptAudioPath;
+    } else {
+      questionPayload.prompt_audio = null;
+      questionPayload.prompt_audio_path = null;
+    }
+
+    // 4) update question row
+    const { error: qError } = await supabase
+      .from("questions")
+      .update(questionPayload)
+      .eq("id", qId);
+    if (qError) throw qError;
+
+    // 5) set correct option using rpc if exists
+    if (updatedQ.correctOptionId) {
+      const { error: rpcErr } = await supabase.rpc("set_correct_option", {
+        question_id: qId,
+        option_id: updatedQ.correctOptionId,
+      });
+      if (rpcErr) throw rpcErr;
+    }
+
+    // 6) update UI local state (replace question in quiz.questions)
+    setQuiz((s) => ({
+      ...s!,
+      questions: s!.questions.map((qq) =>
+        qq.id === qId ? { ...updatedQ } : qq
+      ),
+    }));
+
+    alert("Question saved!");
   }
 
   function handleFormChange(next: Partial<Quiz>) {
@@ -180,88 +432,26 @@ export default function EditQuizPage({
     }
   }
 
-  // update quiz metadata
-  async function updateMeta(changes: Partial<Quiz>) {
-    setQuiz((q) => ({ ...q!, ...changes }));
-    const { error } = await supabase
-      .from("quizzes")
-      .update(changes)
-      .eq("id", quiz?.id);
-
-    if (error) console.error("Failed to update quiz:", error);
-  }
-
   // add new question
   async function addQuestion(qType: QuizType) {
-    const { data, error } = await supabase
-      .from("questions")
-      .insert([{ quiz_id: quiz?.id, q_type: qType }])
-      .select()
-      .single();
+    const tempId = "temp-" + uuidv4();
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const newQuestion: QuizQuestion = {
-      id: data.id,
-      qType: data.q_type,
-      promptText: data.prompt_text,
-      promptAudio: data.prompt_audio,
-      promptImage: data.prompt_image,
-      expectedAnswer: data.expected_answer,
+    const newQuestion: LocalQuestion = {
+      id: tempId,
+      qType,
+      promptText: "",
       options: [],
     };
 
-    // if T/F and no expected answer, set to "true"
-    if (qType === "true_false" && !data.expected_answer) {
+    // default expectedAnswer for T/F
+    if (qType === "true_false") {
       newQuestion.expectedAnswer = "true";
-      await supabase
-        .from("questions")
-        .update({ expected_answer: "true" })
-        .eq("id", data.id);
     }
 
     setQuiz((s) => ({
       ...s!,
       questions: [...s!.questions, newQuestion],
     }));
-  }
-
-  // update existing question
-  async function updateQuestion(qId: string, next: Partial<QuizQuestion>) {
-    const currentQ = quiz!.questions.find((qq) => qq.id === qId)!;
-    const updatedQ: QuizQuestion = { ...currentQ, ...next };
-
-    // validate before saving
-    const error = validateQuestion(updatedQ);
-    if (error) {
-      alert(error);
-      return;
-    }
-
-    setQuiz((s) => ({
-      ...s!,
-      questions: s!.questions.map((qq) =>
-        qq.id === qId ? { ...qq, ...next } : qq
-      ),
-    }));
-
-    const payload: Partial<DBQuestion> = {};
-    if (next.promptText !== undefined) payload.prompt_text = next.promptText;
-    if (next.promptAudio !== undefined) payload.prompt_audio = next.promptAudio;
-    if (next.promptImage !== undefined) payload.prompt_image = next.promptImage;
-    if (next.expectedAnswer !== undefined)
-      payload.expected_answer = next.expectedAnswer;
-    if (next.qType !== undefined) payload.q_type = next.qType;
-
-    const { error: dbError } = await supabase
-      .from("questions")
-      .update(payload)
-      .eq("id", qId);
-
-    if (dbError) console.error("Failed to update question:", error);
   }
 
   // remove question
@@ -365,7 +555,10 @@ export default function EditQuizPage({
               </div>
 
               <div className="p-4">
-                <QuestionEditor question={q} updateQuestion={updateQuestion} />
+                <QuestionEditor
+                  question={q}
+                  onSave={(updatedQ) => saveQuestion(q.id, updatedQ)}
+                />
               </div>
             </div>
           ))}
