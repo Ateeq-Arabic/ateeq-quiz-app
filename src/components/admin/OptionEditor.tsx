@@ -3,6 +3,7 @@
 import React from "react";
 import type { LocalOption } from "@/features/quiz/types";
 import Image from "next/image";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function OptionEditor({
   options,
@@ -29,11 +30,44 @@ export default function OptionEditor({
     onChange([...options, { id: tempId, text: "" }]);
   }
 
-  function removeOption(id: string) {
-    onChange(
-      options.filter((o) => o.id !== id),
-      correctOptionId === id ? undefined : correctOptionId
-    );
+  async function removeOption(id: string) {
+    // If it's a new (temp) option, just remove locally
+    if (id.startsWith("temp-")) {
+      onChange(
+        options.filter((o) => o.id !== id),
+        correctOptionId === id ? undefined : correctOptionId
+      );
+      return;
+    }
+
+    // Otherwise, call API to delete immediately
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+      const res = await fetch("/api/admin/delete-option", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ optionId: id }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert("Failed to delete option: " + (body?.error ?? res.statusText));
+        return;
+      }
+
+      // Update local state after server confirms
+      onChange(
+        options.filter((o) => o.id !== id),
+        correctOptionId === id ? undefined : correctOptionId
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert("Error deleting option: " + msg);
+    }
   }
 
   return (
