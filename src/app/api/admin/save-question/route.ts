@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { supabaseAdmin, ensureAdmin } from "@/app/api/admin/_utils";
 
 // shape of response returned from SQL function
 type SaveQuestionResponse = {
@@ -8,11 +8,15 @@ type SaveQuestionResponse = {
 };
 
 export async function POST(req: Request) {
+  // verify admin
+  const adminCheck = await ensureAdmin(req);
+  if (adminCheck instanceof NextResponse) return adminCheck;
+
   try {
     const { quizId, question } = await req.json();
 
     // Call the atomic SQL function
-    const { data, error } = await supabase.rpc("save_question_atomic", {
+    const { data, error } = await supabaseAdmin.rpc("save_question_atomic", {
       quiz_id: quizId,
       question_data: question,
     });
