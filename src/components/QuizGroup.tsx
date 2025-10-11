@@ -13,7 +13,7 @@ export default function QuizGroup({
   headerColor,
 }: QuizGroupProps) {
   return (
-    <section className="mb-12">
+    <section className="mb-12 p-5">
       {/* Group Header with background color */}
       <div className={`${headerColor} rounded-lg px-4 py-2 mb-6`}>
         <h2 className="text-lg font-semibold text-white">{groupName}</h2>

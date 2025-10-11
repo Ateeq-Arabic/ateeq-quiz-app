@@ -47,31 +47,29 @@ export default async function Home() {
   const groupEntries = Array.from(grouped.entries());
 
   return (
-    <main className="min-h-screen px-4 bg-[var(--background)]">
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-md p-6">
-        {/* Page Header */}
-        <header className="mb-10 text-center">
-          <h1 className="text-4xl font-bold text-[var(--primary)]">Quizzes</h1>
-          <p className="text-base text-[var(--muted)] mt-2">
-            Choose a quiz to test your Arabic basics.
-          </p>
-        </header>
+    <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-md p-6">
+      {/* Page Header */}
+      <header className="mb-10 text-center">
+        <h1 className="text-4xl font-bold text-[var(--primary)]">Quizzes</h1>
+        <p className="text-base text-[var(--muted)] mt-2">
+          Choose a quiz to test your Arabic basics.
+        </p>
+      </header>
 
-        {/* Quiz Groups */}
-        <div>
-          {groupEntries.map(([groupName, items]) => {
-            const headerColor = getGroupColor(groupName);
-            return (
-              <QuizGroup
-                key={groupName}
-                groupName={groupName}
-                items={items}
-                headerColor={headerColor}
-              />
-            );
-          })}
-        </div>
+      {/* Quiz Groups */}
+      <div>
+        {groupEntries.map(([groupName, items]) => {
+          const headerColor = getGroupColor(groupName);
+          return (
+            <QuizGroup
+              key={groupName}
+              groupName={groupName}
+              items={items}
+              headerColor={headerColor}
+            />
+          );
+        })}
       </div>
-    </main>
+    </div>
   );
 }
