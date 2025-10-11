@@ -13,6 +13,7 @@ export default function QuestionEditor({
   onSave: (updatedQ: LocalQuestion) => void;
 }) {
   const [localQ, setLocalQ] = useState<LocalQuestion>({ ...question });
+  const [saving, setSaving] = useState(false);
 
   // cleanup object URLs on unmount (optional but good)
   useEffect(() => {
@@ -27,6 +28,15 @@ export default function QuestionEditor({
     value: LocalQuestion[K]
   ) {
     setLocalQ((q) => ({ ...q, [field]: value }));
+  }
+
+  async function handleClick() {
+    try {
+      setSaving(true);
+      onSave(localQ);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -170,10 +180,11 @@ export default function QuestionEditor({
 
       {/* Save button */}
       <button
-        onClick={() => onSave(localQ)}
-        className="px-4 py-2 bg-[var(--primary)] text-white rounded"
+        onClick={handleClick}
+        disabled={saving}
+        className="px-4 py-2 bg-[var(--primary)] text-white rounded cursor-pointer disabled:opacity-50"
       >
-        Save Question
+        {saving ? "Saving..." : "Save Question"}
       </button>
     </div>
   );

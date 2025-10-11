@@ -4,6 +4,7 @@ import React from "react";
 import type { LocalOption } from "@/features/quiz/types";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export default function OptionEditor({
   options,
@@ -14,6 +15,8 @@ export default function OptionEditor({
   correctOptionId?: string;
   onChange: (next: LocalOption[], correctId?: string) => void;
 }) {
+  const toast = useToast();
+
   function updateOpt(id: string, patch: Partial<LocalOption>) {
     onChange(
       options.map((o) => (o.id === id ? { ...o, ...patch } : o)),
@@ -55,9 +58,17 @@ export default function OptionEditor({
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert("Failed to delete option: " + (body?.error ?? res.statusText));
+        console.log(
+          "Failed to delete option: " + (body?.error ?? res.statusText)
+        );
+        toast(
+          "Failed to delete option: " + (body?.error ?? res.statusText),
+          "error"
+        );
         return;
       }
+
+      toast("Option deleted successfully", "success");
 
       // Update local state after server confirms
       onChange(
@@ -66,7 +77,8 @@ export default function OptionEditor({
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert("Error deleting option: " + msg);
+      console.log("Error deleting option: " + msg);
+      toast("Error deleting option: " + msg, "error");
     }
   }
 

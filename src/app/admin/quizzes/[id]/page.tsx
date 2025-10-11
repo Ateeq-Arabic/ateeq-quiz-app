@@ -17,6 +17,7 @@ import type {
 } from "@/features/quiz/types";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export default function EditQuizPage({
   params,
@@ -25,10 +26,16 @@ export default function EditQuizPage({
 }) {
   const router = useRouter();
   const { id } = use(params);
+
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const toast = useToast();
 
   // fetch quiz + questions
   useEffect(() => {
@@ -53,6 +60,7 @@ export default function EditQuizPage({
 
       if (error) {
         console.error(error);
+        toast("Failed to load quiz: " + error.message, "error");
       } else {
         setQuiz({
           id: data.id,
@@ -88,7 +96,7 @@ export default function EditQuizPage({
     }
 
     fetchQuiz();
-  }, [id]);
+  }, [id, toast]);
 
   useEffect(() => {
     async function fetchGroups() {
@@ -105,6 +113,17 @@ export default function EditQuizPage({
 
     fetchGroups();
   }, []);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   if (loading) return <p className="p-4">Loading...</p>;
 
@@ -150,7 +169,8 @@ export default function EditQuizPage({
     // client-side validation first
     const validationError = validateQuestion(updatedQ);
     if (validationError) {
-      alert(validationError);
+      console.log(validationError);
+      toast(validationError, "error");
       return;
     }
 
@@ -220,7 +240,13 @@ export default function EditQuizPage({
       const body = await res.json();
 
       if (!res.ok) {
-        alert("Failed to save question: " + (body?.error ?? res.statusText));
+        console.log(
+          "Failed to save question: " + (body?.error ?? res.statusText)
+        );
+        toast(
+          "Failed to save question: " + (body?.error ?? res.statusText),
+          "error"
+        );
         return;
       }
 
@@ -263,33 +289,41 @@ export default function EditQuizPage({
         questions: s!.questions.map((qq) => (qq.id === qId ? deep : qq)),
       }));
 
-      alert("Question saved!");
+      console.log("Question saved!");
+      toast("Question saved!", "success");
+      setDirty(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("saveQuestion error:", err);
-      alert("Error saving question: " + message);
+      console.log("Error saving question: " + message);
+      toast("Error saving question: " + message, "error");
     }
   }
 
   function handleFormChange(next: Partial<Quiz>) {
     setQuiz((q) => ({ ...q!, ...next }));
+    setDirty(true);
   }
 
   async function saveQuiz() {
     if (!quiz!.title?.trim()) {
-      alert("Title cannot be empty");
+      console.log("Title cannot be empty");
+      toast("Title cannot be empty", "error");
       return;
     }
     if (!quiz!.group?.trim()) {
-      alert("Group cannot be empty");
+      console.log("Group cannot be empty");
+      toast("Group cannot be empty", "error");
       return;
     }
     if (!quiz!.description?.trim()) {
-      alert("Description cannot be empty");
+      console.log("Description cannot be empty");
+      toast("Description cannot be empty", "error");
       return;
     }
     if (!quiz!.slug?.trim()) {
-      alert("Slug cannot be empty");
+      console.log("Slug cannot be empty");
+      toast("Slug cannot be empty", "error");
       return;
     }
 
@@ -307,9 +341,12 @@ export default function EditQuizPage({
     setSaving(false);
 
     if (error) {
-      alert("Failed to save quiz: " + error.message);
+      console.log("Failed to save quiz: " + error.message);
+      toast("Failed to save quiz: " + error.message, "error");
     } else {
-      alert("Quiz saved!");
+      console.log("Quiz saved!");
+      toast("Quiz saved!", "success");
+      setDirty(false);
     }
   }
 
@@ -332,6 +369,7 @@ export default function EditQuizPage({
       ...s!,
       questions: [...s!.questions, newQuestion],
     }));
+    setDirty(true);
   }
 
   // remove question (if it's still temp we just remove locally; if it's real we call delete endpoint)
@@ -347,29 +385,38 @@ export default function EditQuizPage({
       return;
     }
 
-    // otherwise call server delete
-    const session = (await supabase.auth.getSession()).data.session;
-    const token = session?.access_token;
+    try {
+      setDeletingId(qId);
 
-    const res = await fetch("/api/admin/delete-question", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify({ questionId: qId }),
-    });
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
 
-    if (!res.ok) {
-      const { error } = await res.json().catch(() => ({ error: "Unknown" }));
-      alert("Failed to delete question: " + (error ?? "Unknown"));
-      return;
+      const res = await fetch("/api/admin/delete-question", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({ questionId: qId }),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: "Unknown" }));
+        toast("Failed to delete question: " + (error ?? "Unknown"), "error");
+        return;
+      }
+
+      setQuiz((s) => ({
+        ...s!,
+        questions: s!.questions.filter((qq) => qq.id !== qId),
+      }));
+      toast("Question deleted", "success");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast("Error deleting question: " + msg, "error");
+    } finally {
+      setDeletingId(null);
     }
-
-    setQuiz((s) => ({
-      ...s!,
-      questions: s!.questions.filter((qq) => qq.id !== qId),
-    }));
   }
 
   return (
@@ -436,9 +483,10 @@ export default function EditQuizPage({
                 <div className="flex gap-2">
                   <button
                     onClick={() => removeQuestion(q.id)}
-                    className="px-2 py-1 border rounded"
+                    disabled={deletingId === q.id}
+                    className="px-2 py-1 border rounded disabled:opacity-50"
                   >
-                    Delete
+                    {deletingId === q.id ? "Deleting..." : "Delete"}
                   </button>
                 </div>
               </div>
