@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabase } from "@/lib/supabaseClient";
 import QuizGroup from "@/components/QuizGroup";
 import { getGroupColor } from "@/features/quiz/colors";
