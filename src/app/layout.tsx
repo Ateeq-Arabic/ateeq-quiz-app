@@ -43,18 +43,18 @@ export default function RootLayout({
                 href="/"
                 className="text-2xl font-bold tracking-wide hover:opacity-90 transition"
               >
-                Ateeq Quiz
+                <span className="text-[#fdc700]">Ateeq</span> Quiz
               </Link>
 
               {/* Navigation */}
-              <nav className="space-x-6">
+              {/* <nav className="space-x-6">
                 <Link href="/" className="hover:underline">
                   Home
                 </Link>
                 <Link href="/about" className="hover:underline">
                   About
                 </Link>
-              </nav>
+              </nav> */}
             </div>
           </header>
 
