@@ -20,7 +20,7 @@ export default function QuizGroup({
       </div>
 
       {/* Quiz Cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
         {items.map((quiz) => (
           <QuizCard key={quiz.id} quiz={quiz} headerColor={headerColor} />
         ))}
