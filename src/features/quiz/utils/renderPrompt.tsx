@@ -13,7 +13,9 @@ export function renderPromptText(text: string) {
           key={i}
           dir={isArabic ? "rtl" : "ltr"}
           className={`${
-            isArabic ? "font-arabic text-2xl leading-relaxed" : "font-english"
+            isArabic
+              ? "font-arabic text-2xl leading-relaxed"
+              : "font-english text-xl leading-snug"
           } mx-1 inline-block`}
         >
           {part}
