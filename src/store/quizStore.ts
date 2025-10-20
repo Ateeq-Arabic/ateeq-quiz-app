@@ -28,6 +28,16 @@ type QuizState = {
   reset: () => void;
 };
 
+// helpers (place near the top of the file)
+const isArabicText = (s: string) => /\p{Script=Arabic}/u.test(s);
+
+const normalizeForCompare = (s: string, treatAsArabic: boolean) => {
+  if (typeof s !== "string") return "";
+  const trimmed = s.trim();
+  // Arabic: keep exact characters (diacritics etc.); English: case-insensitive
+  return treatAsArabic ? trimmed : trimmed.toLocaleLowerCase();
+};
+
 export const useQuizStore = create<QuizState>((set, get) => ({
   answers: {},
   finished: false,
@@ -65,10 +75,16 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             (q.expectedAnswer ?? "").toLocaleLowerCase();
       } else if (qType === "fill_blank") {
         correctAnswer = q.expectedAnswer ?? "";
-        // strict comparison (including diacritics); trim whitespace on both sides
+
+        const ua = typeof userAnswer === "string" ? userAnswer : "";
+        // decide language based on the expected answer if available; otherwise based on user input
+        const treatAsArabic = isArabicText(correctAnswer) || isArabicText(ua);
+
+        // strict comparison (including diacritics);
+        // Arabic → strict (trim only); English → case-insensitive (lowercase + trim)
         isCorrect =
-          typeof userAnswer === "string" &&
-          userAnswer.trim() === (correctAnswer ?? "").trim();
+          normalizeForCompare(ua, treatAsArabic) ===
+          normalizeForCompare(correctAnswer ?? "", treatAsArabic);
       }
 
       if (isCorrect) score++;
