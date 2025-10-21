@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, ensureAdmin } from "@/app/api/admin/_utils";
+import { safeDeleteFile } from "@/app/api/admin/_utils";
 
 export async function POST(req: Request) {
   // verify admin
@@ -41,11 +42,11 @@ export async function POST(req: Request) {
     }
 
     // 4. Delete from storage
-    if (imagePaths.length) {
-      await supabaseAdmin.storage.from("quiz-images").remove(imagePaths);
+    for (const path of imagePaths) {
+      await safeDeleteFile("quiz-images", path);
     }
-    if (audioPaths.length) {
-      await supabaseAdmin.storage.from("quiz-audio").remove(audioPaths);
+    for (const path of audioPaths) {
+      await safeDeleteFile("quiz-audio", path);
     }
 
     // 5. Delete the question row (cascade deletes options)

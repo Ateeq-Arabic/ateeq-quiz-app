@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { LocalQuestion } from "@/features/quiz/types";
 import OptionEditor from "./OptionEditor";
 import Image from "next/image";
+import MediaPicker from "./media/MediaPicker";
 
 export default function QuestionEditor({
   question,
@@ -14,6 +15,11 @@ export default function QuestionEditor({
 }) {
   const [localQ, setLocalQ] = useState<LocalQuestion>({ ...question });
   const [saving, setSaving] = useState(false);
+
+  const [picker, setPicker] = useState<{
+    bucket: "quiz-images" | "quiz-audio";
+    type: "promptAudio" | "promptImage";
+  } | null>(null);
 
   // cleanup object URLs on unmount (optional but good)
   useEffect(() => {
@@ -87,6 +93,15 @@ export default function QuestionEditor({
               }}
             />
           )}
+
+          <button
+            onClick={() =>
+              setPicker({ bucket: "quiz-audio", type: "promptAudio" })
+            }
+            className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+          >
+            Choose Existing
+          </button>
         </div>
 
         {/* Prompt image */}
@@ -129,6 +144,15 @@ export default function QuestionEditor({
               }}
             />
           )}
+
+          <button
+            onClick={() =>
+              setPicker({ bucket: "quiz-images", type: "promptImage" })
+            }
+            className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+          >
+            Choose Existing
+          </button>
         </div>
       </div>
 
@@ -186,6 +210,22 @@ export default function QuestionEditor({
       >
         {saving ? "Saving..." : "Save Question"}
       </button>
+
+      {picker && (
+        <MediaPicker
+          bucket={picker.bucket}
+          onSelect={(url, path) => {
+            if (picker.type === "promptAudio") {
+              handleChange("promptAudio", url);
+              handleChange("promptAudioPath", path);
+            } else {
+              handleChange("promptImage", url);
+              handleChange("promptImagePath", path);
+            }
+          }}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </div>
   );
 }

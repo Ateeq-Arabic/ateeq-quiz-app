@@ -48,3 +48,34 @@ export async function ensureAdmin(req: Request) {
   // success: return user id (or user object) so caller can continue
   return { user };
 }
+
+// --- Safe deletion helper for shared media files ---
+export async function safeDeleteFile(bucket: string, path: string) {
+  if (!path) return;
+
+  try {
+    // Check if the same path is still referenced elsewhere
+    const { data: stillUsedOpts } = await supabaseAdmin
+      .from("options")
+      .select("id")
+      .or(`image_path.eq.${path},audio_path.eq.${path}`);
+
+    const { data: stillUsedQs } = await supabaseAdmin
+      .from("questions")
+      .select("id")
+      .or(`prompt_image_path.eq.${path},prompt_audio_path.eq.${path}`);
+
+    const stillUsed = (stillUsedOpts?.length ?? 0) + (stillUsedQs?.length ?? 0);
+
+    if (stillUsed === 0) {
+      await supabaseAdmin.storage.from(bucket).remove([path]);
+      console.log(`Deleted unused file from ${bucket}: ${path}`);
+    } else {
+      console.log(
+        `Skipped deleting ${path} — still used in ${stillUsed} record(s)`
+      );
+    }
+  } catch (err) {
+    console.warn(`Failed safeDeleteFile for ${path}:`, err);
+  }
+}

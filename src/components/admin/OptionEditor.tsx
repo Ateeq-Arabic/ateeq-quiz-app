@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { LocalOption } from "@/features/quiz/types";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
+import MediaPicker from "./media/MediaPicker";
 
 export default function OptionEditor({
   options,
@@ -16,6 +17,9 @@ export default function OptionEditor({
   onChange: (next: LocalOption[], correctId?: string) => void;
 }) {
   const toast = useToast();
+  const [picker, setPicker] = useState<{
+    bucket: "quiz-images" | "quiz-audio";
+  } | null>(null);
 
   function updateOpt(id: string, patch: Partial<LocalOption>) {
     onChange(
@@ -156,6 +160,14 @@ export default function OptionEditor({
                     }}
                   />
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setPicker({ bucket: "quiz-images" })}
+                  className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+                >
+                  Choose Existing
+                </button>
               </div>
 
               {/* AUDIO preview + replace */}
@@ -196,6 +208,14 @@ export default function OptionEditor({
                     }}
                   />
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setPicker({ bucket: "quiz-audio" })}
+                  className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+                >
+                  Choose Existing
+                </button>
               </div>
             </div>
           </div>
@@ -207,6 +227,19 @@ export default function OptionEditor({
           + Add option
         </button>
       </div>
+
+      {picker && (
+        <MediaPicker
+          bucket={picker.bucket}
+          onSelect={(url, path) => {
+            const last = options[options.length - 1];
+            if (picker.bucket === "quiz-images")
+              updateOpt(last.id, { imageUrl: url, imagePath: path });
+            else updateOpt(last.id, { audioUrl: url, audioPath: path });
+          }}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </div>
   );
 }

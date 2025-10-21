@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, ensureAdmin } from "@/app/api/admin/_utils";
+import { safeDeleteFile } from "@/app/api/admin/_utils";
 
 export async function POST(req: Request) {
   // verify admin
@@ -38,17 +39,11 @@ export async function POST(req: Request) {
 
     // 3. Delete files from storage (if any)
     if (option.image_path) {
-      const { error: imgErr } = await supabaseAdmin.storage
-        .from("quiz-images")
-        .remove([option.image_path]);
-      if (imgErr) console.warn("Failed to delete image:", imgErr);
+      await safeDeleteFile("quiz-images", option.image_path);
     }
 
     if (option.audio_path) {
-      const { error: audErr } = await supabaseAdmin.storage
-        .from("quiz-audio")
-        .remove([option.audio_path]);
-      if (audErr) console.warn("Failed to delete audio:", audErr);
+      await safeDeleteFile("quiz-audio", option.audio_path);
     }
 
     return NextResponse.json({ success: true });
