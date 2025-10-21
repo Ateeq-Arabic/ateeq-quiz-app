@@ -9,7 +9,7 @@ interface QuizCardProps {
 export default function QuizCard({ quiz, headerColor }: QuizCardProps) {
   return (
     <Link
-      href={`/quiz/${quiz.slug ?? quiz.id}`}
+      href={`/quiz/${quiz.id}`}
       className="block rounded-xl overflow-hidden border-2 border-[var(--border)] shadow-sm hover:shadow-md transition bg-white"
     >
       <div className="flex flex-col">
