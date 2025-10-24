@@ -6,6 +6,7 @@ import type {
   DBQuestionWithOptions,
 } from "@/features/quiz/types";
 import QuizPlayer from "@/components/QuizPlayer";
+import { getGroupColor } from "@/features/quiz/colors";
 
 export default async function QuizPage({
   params,
@@ -69,16 +70,28 @@ export default async function QuizPage({
       ),
   };
 
+  const headerColor = getGroupColor(quiz.group ?? "");
+
   // header UI (server) — keep this, player is client
   return (
     <main className="min-h-screen px-4 py-10 bg-[var(--background)]">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-8">
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-[var(--primary)]">
-            {quiz.title}
-          </h1>
+        <header className="mb-8 text-left border-b border-gray-400 pb-4">
+          <div className="flex items-center gap-3 mb-2">
+            {quiz.group && (
+              <span
+                className={`px-3 py-2 text-m font-semibold ${headerColor} text-white uppercase tracking-wide rounded-full mb-3`}
+              >
+                {quiz.group}
+              </span>
+            )}
+            <h1 className="text-3xl font-bold text-[var(--primary)] mb-1">
+              {quiz.title}
+            </h1>
+          </div>
+
           {quiz.description && (
-            <p className="text-sm text-[var(--muted)] mt-2">
+            <p className="text-[var(--muted)] text-lg italic leading-relaxed max-w-2xl mx-auto text-center">
               {quiz.description}
             </p>
           )}
