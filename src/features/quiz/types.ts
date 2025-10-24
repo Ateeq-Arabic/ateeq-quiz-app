@@ -41,6 +41,8 @@ export type QuizQuestion = {
 
   /** For fill-in */
   expectedAnswer?: string;
+
+  orderIndex?: number;
 };
 
 export type Quiz = {
@@ -80,6 +82,7 @@ export type DBQuestion = {
   prompt_image_path: string | null;
   expected_answer: string | null;
   correct_option_id: string | null;
+  order_index: number | null;
 };
 
 export type DBOption = {
@@ -109,4 +112,6 @@ export type LocalQuestion = QuizQuestion & {
   options?: LocalOption[];
   _newPromptImageFile?: File | null; // if user selected a new prompt image
   _newPromptAudioFile?: File | null; // if user selected a new prompt audio
+
+  orderIndex?: number; // local-only override for reordering
 };

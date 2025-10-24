@@ -21,7 +21,7 @@ export default async function QuizPage({
       `
       id, slug, title, description, group,
       questions:questions (
-        id, q_type, prompt_text, prompt_audio, prompt_image, expected_answer,
+        id, q_type, prompt_text, prompt_audio, prompt_image, expected_answer, order_index,
         options:options (
           id, text, image_url, audio_url, lang, is_correct
         )
@@ -46,24 +46,27 @@ export default async function QuizPage({
     title: data.title,
     description: data.description ?? undefined,
     group: data.group ?? undefined,
-    questions: (data.questions as DBQuestionWithOptions[]).map(
-      (q): QuizQuestion => ({
-        id: q.id,
-        qType: q.q_type ?? undefined,
-        promptText: q.prompt_text ?? undefined,
-        promptAudio: q.prompt_audio ?? undefined,
-        promptImage: q.prompt_image ?? undefined,
-        expectedAnswer: q.expected_answer ?? undefined,
-        options: q.options?.map((o) => ({
-          id: o.id,
-          text: o.text ?? undefined,
-          imageUrl: o.image_url ?? undefined,
-          audioUrl: o.audio_url ?? undefined,
-          lang: o.lang as "ar" | "en" | undefined,
-        })),
-        correctOptionId: q.options?.find((o) => o.is_correct)?.id,
-      })
-    ),
+    questions: (data.questions as DBQuestionWithOptions[])
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+      .map(
+        (q): QuizQuestion => ({
+          id: q.id,
+          qType: q.q_type ?? undefined,
+          promptText: q.prompt_text ?? undefined,
+          promptAudio: q.prompt_audio ?? undefined,
+          promptImage: q.prompt_image ?? undefined,
+          expectedAnswer: q.expected_answer ?? undefined,
+          orderIndex: q.order_index ?? undefined,
+          options: q.options?.map((o) => ({
+            id: o.id,
+            text: o.text ?? undefined,
+            imageUrl: o.image_url ?? undefined,
+            audioUrl: o.audio_url ?? undefined,
+            lang: o.lang as "ar" | "en" | undefined,
+          })),
+          correctOptionId: q.options?.find((o) => o.is_correct)?.id,
+        })
+      ),
   };
 
   // header UI (server) — keep this, player is client

@@ -109,6 +109,23 @@ export async function POST(req: Request) {
       }
     }
 
+    // Map camelCase -> snake_case for DB
+    if (typeof question.orderIndex === "number") {
+      question.order_index = question.orderIndex;
+    }
+
+    // If no explicit order_index provided, append at end
+    if (question.order_index == null || question.order_index === 0) {
+      const { data: existing } = await supabaseAdmin
+        .from("questions")
+        .select("order_index")
+        .eq("quiz_id", quizId);
+
+      const maxOrder =
+        existing?.reduce((max, q) => Math.max(max, q.order_index ?? 0), 0) ?? 0;
+      question.order_index = maxOrder + 1;
+    }
+
     // 2) Call the atomic SQL function via supabaseAdmin RPC
     //    The SQL function should accept (quiz_id uuid, question_data jsonb) and return JSONB
     const rpcResult = await supabaseAdmin.rpc("save_question_atomic", {

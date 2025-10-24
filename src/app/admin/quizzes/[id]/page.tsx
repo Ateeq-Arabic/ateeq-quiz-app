@@ -47,7 +47,7 @@ export default function EditQuizPage({
     id, title, description, group, slug,
     questions:questions (
       id, q_type, prompt_text, prompt_audio, prompt_image,
-      prompt_audio_path, prompt_image_path, expected_answer,
+      prompt_audio_path, prompt_image_path, expected_answer, order_index,
       options:options (
         id, text, image_url, audio_url,
         image_path, audio_path, lang, is_correct
@@ -68,28 +68,31 @@ export default function EditQuizPage({
           description: data.description,
           group: data.group,
           slug: data.slug ?? undefined,
-          questions: (data.questions as DBQuestionWithOptions[]).map(
-            (q): QuizQuestion => ({
-              id: q.id,
-              qType: q.q_type ?? undefined,
-              promptText: q.prompt_text ?? undefined,
-              promptAudio: q.prompt_audio ?? undefined,
-              promptAudioPath: q.prompt_audio_path ?? undefined,
-              promptImage: q.prompt_image ?? undefined,
-              promptImagePath: q.prompt_image_path ?? undefined,
-              expectedAnswer: q.expected_answer ?? undefined,
-              options: q.options?.map((o) => ({
-                id: o.id,
-                text: o.text ?? undefined,
-                imageUrl: o.image_url ?? undefined,
-                imagePath: o.image_path ?? undefined,
-                audioUrl: o.audio_url ?? undefined,
-                audioPath: o.audio_path ?? undefined,
-                lang: o.lang as "ar" | "en" | undefined,
-              })),
-              correctOptionId: q.options?.find((o) => o.is_correct)?.id,
-            })
-          ),
+          questions: (data.questions as DBQuestionWithOptions[])
+            .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+            .map(
+              (q): QuizQuestion => ({
+                id: q.id,
+                qType: q.q_type ?? undefined,
+                promptText: q.prompt_text ?? undefined,
+                promptAudio: q.prompt_audio ?? undefined,
+                promptAudioPath: q.prompt_audio_path ?? undefined,
+                promptImage: q.prompt_image ?? undefined,
+                promptImagePath: q.prompt_image_path ?? undefined,
+                expectedAnswer: q.expected_answer ?? undefined,
+                orderIndex: q.order_index ?? undefined,
+                options: q.options?.map((o) => ({
+                  id: o.id,
+                  text: o.text ?? undefined,
+                  imageUrl: o.image_url ?? undefined,
+                  imagePath: o.image_path ?? undefined,
+                  audioUrl: o.audio_url ?? undefined,
+                  audioPath: o.audio_path ?? undefined,
+                  lang: o.lang as "ar" | "en" | undefined,
+                })),
+                correctOptionId: q.options?.find((o) => o.is_correct)?.id,
+              })
+            ),
         });
       }
       setLoading(false);
@@ -356,6 +359,7 @@ export default function EditQuizPage({
 
     const newQuestion: LocalQuestion = {
       id: tempId,
+      orderIndex: (quiz?.questions?.length ?? 0) + 1,
       qType,
       promptText: "",
       options: [],
@@ -411,12 +415,71 @@ export default function EditQuizPage({
         questions: s!.questions.filter((qq) => qq.id !== qId),
       }));
       toast("Question deleted", "success");
+
+      // Re-normalize order indexes after a deletion
+      const remaining = quiz!.questions
+        .filter((qq) => qq.id !== qId)
+        .map((q, i) => ({ ...q, orderIndex: i + 1 }));
+
+      setQuiz((q) => ({ ...q!, questions: remaining }));
+
+      // Persist new order to DB
+      for (const q of remaining) {
+        await updateOrderOnServer(q.id, q.orderIndex!);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toast("Error deleting question: " + msg, "error");
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function normalizeOrderIndexes(qs: QuizQuestion[]): QuizQuestion[] {
+    // ensure every question has a 1..n orderIndex matching current array order
+    return qs.map((q, i) => ({ ...q, orderIndex: i + 1 }));
+  }
+
+  async function moveQuestionUp(idx: number) {
+    if (idx === 0) return;
+
+    let qs = normalizeOrderIndexes([...quiz!.questions]);
+
+    [qs[idx - 1], qs[idx]] = [qs[idx], qs[idx - 1]];
+
+    qs = normalizeOrderIndexes(qs);
+    setQuiz((q) => ({ ...q!, questions: qs }));
+
+    await updateOrderOnServer(qs[idx - 1].id, qs[idx - 1].orderIndex!);
+    await updateOrderOnServer(qs[idx].id, qs[idx].orderIndex!);
+  }
+
+  async function moveQuestionDown(idx: number) {
+    if (idx === quiz!.questions.length - 1) return;
+
+    let qs = normalizeOrderIndexes([...quiz!.questions]);
+
+    [qs[idx + 1], qs[idx]] = [qs[idx], qs[idx + 1]];
+
+    qs = normalizeOrderIndexes(qs);
+    setQuiz((q) => ({ ...q!, questions: qs }));
+
+    await updateOrderOnServer(qs[idx + 1].id, qs[idx + 1].orderIndex!);
+    await updateOrderOnServer(qs[idx].id, qs[idx].orderIndex!);
+  }
+
+  async function updateOrderOnServer(id: string, newOrder: number) {
+    const session = (await supabase.auth.getSession()).data.session;
+    const token = session?.access_token;
+
+    await fetch("/api/admin/reorder-question", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+      body: JSON.stringify({ questionId: id, newOrder }),
+    });
   }
 
   return (
@@ -481,6 +544,18 @@ export default function EditQuizPage({
                   </span>
                 </div>
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => moveQuestionUp(idx)}
+                    className="px-2 py-1 border rounded"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveQuestionDown(idx)}
+                    className="px-2 py-1 border rounded"
+                  >
+                    ↓
+                  </button>
                   <button
                     onClick={() => removeQuestion(q.id)}
                     disabled={deletingId === q.id}
