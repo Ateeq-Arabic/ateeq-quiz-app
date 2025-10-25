@@ -15,9 +15,14 @@ export default function QuestionLayout({
     <div className="p-6">
       {/* Prompt */}
       {(question.promptText || question.promptParts) && (
-        <h2 className="font-semibold text-lg mb-6 text-center">
-          {renderPrompt(question.promptText, question.promptParts)}
-        </h2>
+        <div className="mb-6 text-center">
+          <span className="font-bold text-xl">
+            {question.questionPrefix && `${question.questionPrefix} `}
+          </span>
+          <span className="font-normal">
+            {renderPrompt(question.promptText, question.promptParts)}
+          </span>
+        </div>
       )}
 
       {/* Prompt Audio */}

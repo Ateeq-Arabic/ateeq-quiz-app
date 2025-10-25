@@ -22,7 +22,7 @@ export default async function QuizPage({
       `
       id, slug, title, description, group,
       questions:questions (
-        id, q_type, prompt_text, prompt_audio, prompt_image, expected_answer, order_index,
+        id, q_type, prompt_text, prompt_audio, prompt_image, expected_answer, order_index, question_prefix,
         options:options (
           id, text, image_url, audio_url, lang, is_correct
         )
@@ -58,6 +58,7 @@ export default async function QuizPage({
           promptImage: q.prompt_image ?? undefined,
           expectedAnswer: q.expected_answer ?? undefined,
           orderIndex: q.order_index ?? undefined,
+          questionPrefix: q.question_prefix ?? undefined,
           options: q.options?.map((o) => ({
             id: o.id,
             text: o.text ?? undefined,

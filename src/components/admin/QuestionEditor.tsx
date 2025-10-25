@@ -48,6 +48,19 @@ export default function QuestionEditor({
   return (
     <div className="space-y-4">
       <div>
+        <label className="block text-sm font-medium">
+          Question Prefix (bold)
+        </label>
+        <input
+          type="text"
+          value={localQ.questionPrefix ?? ""}
+          onChange={(e) => handleChange("questionPrefix", e.target.value)}
+          className="w-full p-2 border rounded"
+          placeholder="e.g. True or False:"
+        />
+      </div>
+
+      <div>
         <label className="block text-sm font-medium">Prompt (text)</label>
         <textarea
           value={localQ.promptText ?? ""}

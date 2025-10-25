@@ -47,7 +47,7 @@ export default function EditQuizPage({
     id, title, description, group, slug,
     questions:questions (
       id, q_type, prompt_text, prompt_audio, prompt_image,
-      prompt_audio_path, prompt_image_path, expected_answer, order_index,
+      prompt_audio_path, prompt_image_path, expected_answer, order_index, question_prefix,
       options:options (
         id, text, image_url, audio_url,
         image_path, audio_path, lang, is_correct
@@ -81,6 +81,7 @@ export default function EditQuizPage({
                 promptImagePath: q.prompt_image_path ?? undefined,
                 expectedAnswer: q.expected_answer ?? undefined,
                 orderIndex: q.order_index ?? undefined,
+                questionPrefix: q.question_prefix ?? undefined,
                 options: q.options?.map((o) => ({
                   id: o.id,
                   text: o.text ?? undefined,

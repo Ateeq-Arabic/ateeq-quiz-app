@@ -43,6 +43,7 @@ export type QuizQuestion = {
   expectedAnswer?: string;
 
   orderIndex?: number;
+  questionPrefix?: string;
 };
 
 export type Quiz = {
@@ -83,6 +84,7 @@ export type DBQuestion = {
   expected_answer: string | null;
   correct_option_id: string | null;
   order_index: number | null;
+  question_prefix: string | null;
 };
 
 export type DBOption = {
@@ -114,4 +116,5 @@ export type LocalQuestion = QuizQuestion & {
   _newPromptAudioFile?: File | null; // if user selected a new prompt audio
 
   orderIndex?: number; // local-only override for reordering
+  questionPrefix?: string; // local-only override for Question_Prefix
 };
